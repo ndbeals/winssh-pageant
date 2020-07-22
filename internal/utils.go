@@ -8,6 +8,11 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+var (
+	modkernel32          = syscall.NewLazyDLL("kernel32.dll")
+	procOpenFileMappingA = modkernel32.NewProc("OpenFileMappingA")
+)
+
 const (
 	// windows consts
 	FILE_MAP_ALL_ACCESS = 0xf001f
@@ -19,40 +24,14 @@ const (
 )
 
 // copyDataStruct is used to pass data in the WM_COPYDATA message.
-// We directly pass a pointer to our copyDataStruct type, we need to be
-// careful that it matches the Windows type exactly
+// We directly pass a pointer to our copyDataStruct type, be careful that it matches the Windows type exactly
 type copyDataStruct struct {
 	dwData uintptr
 	cbData uint32
 	lpData uintptr
 }
 
-// StringToCharPtr converts a Go string into pointer to a null-terminated cstring.
-// This assumes the go string is already ANSI encoded.
-func StringToCharPtr(str string) *uint8 {
-	chars := append([]byte(str), 0) // null terminated
-	return &chars[0]
-}
-
-func utf16PtrToString(p *byte, max uint32) string {
-	if p == nil {
-		return ""
-	}
-
-	// Find NUL terminator.
-	end := unsafe.Pointer(p)
-
-	var n uint32 = 0
-	for *(*byte)(end) != 0 && n < max {
-		end = unsafe.Pointer(uintptr(end) + unsafe.Sizeof(*p))
-		n++
-	}
-
-	s := (*[(1 << 30) - 1]byte)(unsafe.Pointer(p))[:n:n]
-	return string(s)
-}
-
-func MyRegisterClass(hInstance win.HINSTANCE) (atom win.ATOM) {
+func registerWindowClass(hInstance win.HINSTANCE) (atom win.ATOM) {
 	var wc win.WNDCLASSEX
 	wc.Style = 0
 
