@@ -1,7 +1,7 @@
 package main
 
 import (
-	utils "githubcom/ndbeals/winssh-pageant/internal"
+	utils "github.com/ndbeals/winssh-pageant/internal"
 
 	"github.com/lxn/win"
 )
