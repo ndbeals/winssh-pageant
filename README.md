@@ -45,5 +45,5 @@ Please put report all
 
 
 ## Credits
-Big thanks to https://github.com/benpye/wsl-ssh-pageant and the authors for the examples and help they have given me.
+Big thanks to https://github.com/benpye/wsl-ssh-pageant and the authors for the examples of interacting with the win32 api, the build script, and help they have given me directly.
 - https://github.com/buptczq/WinCryptSSHAgent for a working example of how to open a file mapping another process created.
