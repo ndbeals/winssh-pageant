@@ -1,3 +1,4 @@
+![Go](https://github.com/ndbeals/winssh-pageant/workflows/Go/badge.svg)
 # winssh-pageant
 Proxy Pageant requests to the Windows OpenSSH agent (from Microsoft), enabling applications that only support Pageant to use openssh.
 
@@ -21,7 +22,10 @@ go build -ldflags -H=windowsgui
 
 
 ## Usage
-Run the executable `winssh-pageant.exe`, currently there are no runtime flags to change.
+Run the executable `winssh-pageant.exe`. There is only one flag:
+
+ - `--sshpipe [\\.\pipe\ssh-pageant]` - name of the windows openssh agent pipe
+
 
 ### Task Scheduler
 Until I decide on a better way to do this, you can auto-start this program by creating a task using the Task Scheduler, here are the basic steps:

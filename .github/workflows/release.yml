@@ -1,0 +1,88 @@
+name: Go Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Release Version'
+        required: true
+      prevVersion:
+        description: 'Previous Tag'
+        required: true
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.14
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: go get -v -t -d ./...
+
+    - name: Release Build
+      run: .\build.ps1 -release -ver ${{ github.event.inputs.releaseVersion }}
+      shell: powershell
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: release
+        path: release/
+
+  create_release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: release
+      
+    - name: Build Changelog
+      id: build_changelog
+      uses: heinrichreimer/github-changelog-generator-action@v2.1.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        sinceTag: ${{ github.events.inputs.prevVersion }}
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        release_name: Release ${{ github.event.inputs.releaseVersion }}
+        tag_name: ${{ github.event.inputs.releaseVersion }}
+        body: ${{ steps.build_changelog.outputs.changelog}}
+        draft: true
+        prerelease: false
+
+    - name: Upload Release Asset x64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
+        asset_name: winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset x86
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
+        asset_name: winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
+        asset_content_type: application/zip

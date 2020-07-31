@@ -1,4 +1,4 @@
-package utils
+package security
 
 import (
 	"syscall"
@@ -17,6 +17,7 @@ const (
 	ownerSecurityInformation = 1
 )
 
+// Basically copied from win32 documentation headers.
 func getSecurityInfo(
 	handle windows.Handle,
 	objectType uint32,
@@ -25,8 +26,7 @@ func getSecurityInfo(
 	ppsidGroup **windows.SID,
 	ppDacl uintptr,
 	ppSacl uintptr,
-	ppSecurityDescriptor *windows.Handle,
-) (err error) {
+	ppSecurityDescriptor *windows.Handle) (err error) {
 	r1, _, e1 := syscall.Syscall9(
 		procGetSecurityInfo.Addr(),
 		8,

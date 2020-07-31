@@ -9,15 +9,18 @@ param (
     $Release = $false,
 
     [string]
-    $ReleasePath = "winssh-pageant"
+    $ReleasePath = "winssh-pageant",
+
+    [string]
+    $ver = ""
 )
 
 # Cleanup
 Remove-Item -LiteralPath $BuildPath -Force -Recurse -ErrorAction SilentlyContinue
 
 # Build output directory
-$outDir = New-Item -ItemType Directory -Path $BuildPath
-$releaseDir = New-Item -ItemType Directory -Path ".\release"
+$outDir = New-Item -ItemType Directory -Force -Path $BuildPath
+$releaseDir = New-Item -ItemType Directory -Force -Path ".\release"
 
 $oldGOOS = $env:GOOS
 $oldGOARCH = $env:GOARCH
@@ -45,7 +48,7 @@ Foreach ($arch in $Architectures)
         go build -ldflags -H=windowsgui -o $outDir\winssh-pageant.exe
         if ($LastExitCode -ne 0) { $returnValue = $LastExitCode }
         # Remove-Item -LiteralPath $ReleasePath -ErrorAction SilentlyContinue
-        Compress-Archive -Path $outDir\* -DestinationPath $releaseDir\$ReleasePath-$arch.zip -Force
+        Compress-Archive -Path $outDir\* -DestinationPath $releaseDir\$ReleasePath-${ver}_$arch.zip -Force
         
         Remove-Item -LiteralPath $outDir\winssh-pageant.exe
     } else {
@@ -57,5 +60,8 @@ Foreach ($arch in $Architectures)
 # Restore env vars
 $env:GOOS = $oldGOOS
 $env:GOARCH = $oldGOARCH
+
+# Cleanup
+Remove-Item -LiteralPath $BuildPath -Force -Recurse -ErrorAction SilentlyContinue
 
 exit $returnValue
