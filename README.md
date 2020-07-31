@@ -24,7 +24,7 @@ go build -ldflags -H=windowsgui
 ## Usage
 Run the executable `winssh-pageant.exe`. There is only one flag:
 
- - `--sshpipe [\\.\pipe\ssh-pageant]` - name of the windows openssh agent pipe
+ - `--sshpipe "\\.\pipe\ssh-pageant"` - name of the windows openssh agent pipe
 
 
 ### Task Scheduler
