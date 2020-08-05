@@ -45,6 +45,15 @@ type copyDataStruct struct {
 	lpData uintptr
 }
 
+func openFileMap(dwDesiredAccess uint32, bInheritHandle uint32, mapNamePtr uintptr) (windows.Handle, error) {
+	mapPtr, _, err := procOpenFileMappingA.Call(uintptr(dwDesiredAccess), uintptr(bInheritHandle), mapNamePtr)
+	if err != nil && err.Error() == "The operation completed successfully." {
+		err = nil
+	}
+
+	return windows.Handle(mapPtr), err
+}
+
 func registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
 	var wc win.WNDCLASSEX
 	wc.Style = 0
@@ -85,16 +94,6 @@ func createPageantWindow() win.HWND {
 		nil)
 
 	return pageantWindow
-}
-
-func openFileMap(dwDesiredAccess uint32, bInheritHandle uint32, mapNamePtr uintptr) (windows.Handle, error) {
-	mapPtr, _, err := procOpenFileMappingA.Call(uintptr(dwDesiredAccess), uintptr(bInheritHandle), mapNamePtr)
-
-	if err != nil && err.Error() == "The operation completed successfully." {
-		err = nil
-	}
-
-	return windows.Handle(mapPtr), err
 }
 
 func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uintptr {
@@ -178,9 +177,6 @@ func pipeListen(pageantConn net.Conn) {
 		lenBuf := make([]byte, 4)
 		_, err := io.ReadFull(reader, lenBuf)
 		if err != nil {
-			// if *verbose {
-			// 	log.Printf("io.ReadFull error '%s'", err)
-			// }
 			return
 		}
 
@@ -188,25 +184,16 @@ func pipeListen(pageantConn net.Conn) {
 		readBuf := make([]byte, bufferLen)
 		_, err = io.ReadFull(reader, readBuf)
 		if err != nil {
-			// if *verbose {
-			// 	log.Printf("io.ReadFull error '%s'", err)
-			// }
 			return
 		}
 
 		result, err := sshagent.QueryAgent(*sshPipe, append(lenBuf, readBuf...))
 		if err != nil {
-			// if *verbose {
-			// 	log.Printf("Pageant query error '%s'", err)
-			// }
-			// result = failureMessage[:]
+			return
 		}
 
 		_, err = pageantConn.Write(result)
 		if err != nil {
-			// if *verbose {
-			// 	log.Printf("net.Conn.Write error '%s'", err)
-			// }
 			return
 		}
 	}

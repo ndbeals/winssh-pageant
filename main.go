@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"flag"
 	"fmt"
 
@@ -12,22 +11,11 @@ var (
 	sshPipe = flag.String("sshpipe", `\\.\pipe\openssh-ssh-agent`, "Named pipe for Windows OpenSSH agent")
 )
 
-// var testPipeName = `\\.\pipe\pageant.Nate.de663e60ca4268cef1d1f931f1d8ffe2d0df1de50aa09d8cc29facc5991d3638`
-var testPipeName = `\\.\pipe\pageant.Nate`
-
 func main() {
 	flag.Parse()
 
-	fmt.Println(fmt.Sprintf(`terst\%s.%s`, "Nate", "sha"))
-	fmt.Println("open serv")
+	// Start a proxy/redirector for the pageant named pipes
 	go pipeProxy()
-	fmt.Println("postopen serv")
-
-	fmt.Println("wait rec:")
-	// fmt.Println(<-ch)
-
-	sum := sha256.Sum256([]byte(`Pageant`))
-	fmt.Printf("%x", sum)
 
 	pageantWindow := createPageantWindow()
 	if pageantWindow == 0 {
