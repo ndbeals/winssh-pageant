@@ -22,9 +22,10 @@ go build -ldflags -H=windowsgui
 
 
 ## Usage
-Run the executable `winssh-pageant.exe`. There is only one (optional) flag:
+Run the executable `winssh-pageant.exe`. There are two (optional) flags:
 
  - `--sshpipe` - name of the windows openssh agent pipe, default is `"\\.\pipe\ssh-pageant"`
+ - `--no-pageant-pipe` - disable pageant named pipe proxying
 
 
 ### Task Scheduler
