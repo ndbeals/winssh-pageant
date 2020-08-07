@@ -18,21 +18,28 @@ import (
 	"github.com/lxn/win"
 	"golang.org/x/sys/windows"
 
+	"encoding/hex"
+
 	"github.com/ndbeals/winssh-pageant/internal/security"
 	"github.com/ndbeals/winssh-pageant/internal/sshagent"
 )
 
 var (
+	crypt32                = syscall.NewLazyDLL("crypt32.dll")
+	procCryptProtectMemory = crypt32.NewProc("CryptProtectMemory")
+
 	modkernel32          = syscall.NewLazyDLL("kernel32.dll")
 	procOpenFileMappingA = modkernel32.NewProc("OpenFileMappingA")
 )
 
 const (
 	// windows consts
-	FILE_MAP_ALL_ACCESS = 0xf001f
+	CRYPTPROTECTMEMORY_BLOCK_SIZE    = 16
+	CRYPTPROTECTMEMORY_CROSS_PROCESS = 1
+	FILE_MAP_ALL_ACCESS              = 0xf001f
 
 	// Pageant consts
-	agentPipeName   = `\\.\pipe\pageant.%s.%x`
+	agentPipeName   = `\\.\pipe\pageant.%s.%s`
 	agentCopyDataID = 0x804e50ba
 	wndClassName    = "Pageant"
 )
@@ -148,9 +155,28 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 	return win.DefWindowProc(hWnd, message, wParam, lParam)
 }
 
+func capiObfuscateString(realname string) string {
+	cryptlen := len(realname) + 1
+	cryptlen += CRYPTPROTECTMEMORY_BLOCK_SIZE - 1
+	cryptlen /= CRYPTPROTECTMEMORY_BLOCK_SIZE
+	cryptlen *= CRYPTPROTECTMEMORY_BLOCK_SIZE
+
+	cryptdata := make([]byte, cryptlen)
+	copy(cryptdata, realname)
+
+	pDataIn := uintptr(unsafe.Pointer(&cryptdata[0]))
+	cbDataIn := uintptr(cryptlen)
+	dwFlags := uintptr(CRYPTPROTECTMEMORY_CROSS_PROCESS)
+	// pageant ignores errors
+	procCryptProtectMemory.Call(pDataIn, cbDataIn, dwFlags)
+
+	hash := sha256.Sum256(cryptdata)
+	return hex.EncodeToString(hash[:])
+}
+
 func pipeProxy() {
 	currentUser, err := user.Current()
-	pipeName := fmt.Sprintf(agentPipeName, strings.Split(currentUser.Username, `\`)[1], sha256.Sum256([]byte(wndClassName)))
+	pipeName := fmt.Sprintf(agentPipeName, strings.Split(currentUser.Username, `\`)[1], capiObfuscateString(wndClassName))
 	listener, err := winio.ListenPipe(pipeName, nil)
 
 	if err != nil {
