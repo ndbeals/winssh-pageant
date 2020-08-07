@@ -1,31 +1,47 @@
 package main
 
 import (
+	"bufio"
+	"crypto/sha256"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"os/user"
+	"strings"
 	"syscall"
 	"unsafe"
 
 	"encoding/binary"
 
+	"github.com/Microsoft/go-winio"
 	"github.com/lxn/win"
 	"golang.org/x/sys/windows"
+
+	"encoding/hex"
 
 	"github.com/ndbeals/winssh-pageant/internal/security"
 	"github.com/ndbeals/winssh-pageant/internal/sshagent"
 )
 
 var (
+	crypt32                = syscall.NewLazyDLL("crypt32.dll")
+	procCryptProtectMemory = crypt32.NewProc("CryptProtectMemory")
+
 	modkernel32          = syscall.NewLazyDLL("kernel32.dll")
 	procOpenFileMappingA = modkernel32.NewProc("OpenFileMappingA")
 )
 
 const (
 	// windows consts
-	FILE_MAP_ALL_ACCESS = 0xf001f
+	CRYPTPROTECTMEMORY_BLOCK_SIZE    = 16
+	CRYPTPROTECTMEMORY_CROSS_PROCESS = 1
+	FILE_MAP_ALL_ACCESS              = 0xf001f
 
 	// Pageant consts
-	agentMaxMessageLength = 1<<14 - 1
-	agentCopyDataID       = 0x804e50ba
-	wndClassName          = "Pageant"
+	agentPipeName   = `\\.\pipe\pageant.%s.%s`
+	agentCopyDataID = 0x804e50ba
+	wndClassName    = "Pageant"
 )
 
 // copyDataStruct is used to pass data in the WM_COPYDATA message.
@@ -34,6 +50,15 @@ type copyDataStruct struct {
 	dwData uintptr
 	cbData uint32
 	lpData uintptr
+}
+
+func openFileMap(dwDesiredAccess uint32, bInheritHandle uint32, mapNamePtr uintptr) (windows.Handle, error) {
+	mapPtr, _, err := procOpenFileMappingA.Call(uintptr(dwDesiredAccess), uintptr(bInheritHandle), mapNamePtr)
+	if err != nil && err.Error() == "The operation completed successfully." {
+		err = nil
+	}
+
+	return windows.Handle(mapPtr), err
 }
 
 func registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
@@ -55,14 +80,27 @@ func registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
 	return win.RegisterClassEx(&wc)
 }
 
-func openFileMap(dwDesiredAccess uint32, bInheritHandle uint32, mapNamePtr uintptr) (windows.Handle, error) {
-	mapPtr, _, err := procOpenFileMappingA.Call(uintptr(dwDesiredAccess), uintptr(bInheritHandle), mapNamePtr)
-
-	if err != nil && err.Error() == "The operation completed successfully." {
-		err = nil
+func createPageantWindow() win.HWND {
+	inst := win.GetModuleHandle(nil)
+	atom := registerPageantWindow(inst)
+	if atom == 0 {
+		fmt.Println(fmt.Errorf("RegisterClass failed: %d", win.GetLastError()))
+		return 0
 	}
 
-	return windows.Handle(mapPtr), err
+	// CreateWindowEx
+	pageantWindow := win.CreateWindowEx(win.WS_EX_APPWINDOW,
+		syscall.StringToUTF16Ptr(wndClassName),
+		syscall.StringToUTF16Ptr(wndClassName),
+		0,
+		0, 0,
+		0, 0,
+		0,
+		0,
+		inst,
+		nil)
+
+	return pageantWindow
 }
 
 func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uintptr {
@@ -98,15 +136,16 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 			}
 			defer windows.UnmapViewOfFile(sharedMemory)
 
-			sharedMemoryArray := (*[agentMaxMessageLength]byte)(unsafe.Pointer(sharedMemory))
+			sharedMemoryArray := (*[sshagent.AgentMaxMessageLength]byte)(unsafe.Pointer(sharedMemory))
 
 			size := binary.BigEndian.Uint32(sharedMemoryArray[:4]) + 4
 			// size += 4
-			if size > agentMaxMessageLength {
+			if size > sshagent.AgentMaxMessageLength {
 				return 0
 			}
 
-			result, err := sshagent.QueryAgent(*sshPipe, sharedMemoryArray[:size], agentMaxMessageLength)
+			// result, err := sshagent.QueryAgent(*sshPipe, sharedMemoryArray[:size], sshagent.AgentMaxMessageLength)
+			result, err := sshagent.QueryAgent(*sshPipe, sharedMemoryArray[:size])
 			copy(sharedMemoryArray[:], result)
 			// success
 			return 1
@@ -114,4 +153,74 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 	}
 
 	return win.DefWindowProc(hWnd, message, wParam, lParam)
+}
+
+func capiObfuscateString(realname string) string {
+	cryptlen := len(realname) + 1
+	cryptlen += CRYPTPROTECTMEMORY_BLOCK_SIZE - 1
+	cryptlen /= CRYPTPROTECTMEMORY_BLOCK_SIZE
+	cryptlen *= CRYPTPROTECTMEMORY_BLOCK_SIZE
+
+	cryptdata := make([]byte, cryptlen)
+	copy(cryptdata, realname)
+
+	pDataIn := uintptr(unsafe.Pointer(&cryptdata[0]))
+	cbDataIn := uintptr(cryptlen)
+	dwFlags := uintptr(CRYPTPROTECTMEMORY_CROSS_PROCESS)
+	// pageant ignores errors
+	procCryptProtectMemory.Call(pDataIn, cbDataIn, dwFlags)
+
+	hash := sha256.Sum256(cryptdata)
+	return hex.EncodeToString(hash[:])
+}
+
+func pipeProxy() {
+	currentUser, err := user.Current()
+	pipeName := fmt.Sprintf(agentPipeName, strings.Split(currentUser.Username, `\`)[1], capiObfuscateString(wndClassName))
+	listener, err := winio.ListenPipe(pipeName, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer listener.Close()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		go pipeListen(conn)
+	}
+}
+
+func pipeListen(pageantConn net.Conn) {
+	defer pageantConn.Close()
+	reader := bufio.NewReader(pageantConn)
+
+	for {
+		lenBuf := make([]byte, 4)
+		_, err := io.ReadFull(reader, lenBuf)
+		if err != nil {
+			return
+		}
+
+		bufferLen := binary.BigEndian.Uint32(lenBuf)
+		readBuf := make([]byte, bufferLen)
+		_, err = io.ReadFull(reader, readBuf)
+		if err != nil {
+			return
+		}
+
+		result, err := sshagent.QueryAgent(*sshPipe, append(lenBuf, readBuf...))
+		if err != nil {
+			return
+		}
+
+		_, err = pageantConn.Write(result)
+		if err != nil {
+			return
+		}
+	}
 }

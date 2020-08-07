@@ -3,36 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
-	"syscall"
 
 	"github.com/lxn/win"
 )
 
 var (
-	sshPipe = flag.String("sshpipe", `\\.\pipe\openssh-ssh-agent`, "Named pipe for Windows OpenSSH agent")
+	sshPipe       = flag.String("sshpipe", `\\.\pipe\openssh-ssh-agent`, "Named pipe for Windows OpenSSH agent")
+	noPageantPipe = flag.Bool("no-pageant-pipe", false, "Toggle pageant named pipe proxying")
 )
 
 func main() {
 	flag.Parse()
 
-	inst := win.GetModuleHandle(nil)
-	atom := registerPageantWindow(inst)
-	if atom == 0 {
-		fmt.Println(fmt.Errorf("RegisterClass failed: %d", win.GetLastError()))
-		return
+	// Start a proxy/redirector for the pageant named pipes
+	if !*noPageantPipe {
+		go pipeProxy()
 	}
 
-	// CreateWindowEx
-	pageantWindow := win.CreateWindowEx(win.WS_EX_APPWINDOW,
-		syscall.StringToUTF16Ptr(wndClassName),
-		syscall.StringToUTF16Ptr(wndClassName),
-		0,
-		0, 0,
-		0, 0,
-		0,
-		0,
-		inst,
-		nil)
+	pageantWindow := createPageantWindow()
 	if pageantWindow == 0 {
 		fmt.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
 		return

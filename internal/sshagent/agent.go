@@ -7,9 +7,13 @@ import (
 	"github.com/Microsoft/go-winio"
 )
 
+const (
+	AgentMaxMessageLength = 1<<14 - 1
+)
+
 // QueryAgent provides a way to query the named windows openssh agent pipe
-func QueryAgent(pipeName string, buf []byte, agentMaxMessageLength int) (result []byte, err error) {
-	if len(buf) > agentMaxMessageLength {
+func QueryAgent(pipeName string, buf []byte) (result []byte, err error) {
+	if len(buf) > AgentMaxMessageLength {
 		return nil, fmt.Errorf("Message too long")
 	}
 
@@ -25,7 +29,7 @@ func QueryAgent(pipeName string, buf []byte, agentMaxMessageLength int) (result 
 	}
 
 	reader := bufio.NewReader(conn)
-	res := make([]byte, agentMaxMessageLength)
+	res := make([]byte, AgentMaxMessageLength)
 
 	l, err = reader.Read(res)
 	if err != nil {
