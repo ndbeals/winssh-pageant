@@ -10,6 +10,8 @@ This has been tested on Windows 10 2004 using WSL2. Earlier versions of windows 
 
 
 ## Installation
+Install the [Microsoft OpenSSH package, found on their Github](https://github.com/PowerShell/Win32-OpenSSH/releases). Do not install this using Windows update, that one is quite outdated, and will not work with this software.
+
 Download a compiled binary from the [releases page](https://github.com/ndbeals/winssh-pageant/releases) or otherwise build it yourself.
 
 ### Building
@@ -50,5 +52,5 @@ Please put report all
 
 
 ## Credits
-Big thanks to https://github.com/benpye/wsl-ssh-pageant and the authors for the examples of interacting with the win32 api, the build script, and help they have given me directly.
+Big thanks to https://github.com/benpye/wsl-ssh-pageant, Ben Pye and the other contributors for the examples of interacting with the win32 api, the build script, and help they have given me directly.
 - https://github.com/buptczq/WinCryptSSHAgent for a working example of how to open a file mapping another process created.
