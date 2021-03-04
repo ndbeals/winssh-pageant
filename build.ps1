@@ -45,14 +45,14 @@ Foreach ($arch in $Architectures)
     
     if ($Release)
     {        
-        go build -ldflags -H=windowsgui -o $outDir\winssh-pageant.exe
+        go build -ldflags -H=windowsgui -trimpath -o $outDir\winssh-pageant.exe
         if ($LastExitCode -ne 0) { $returnValue = $LastExitCode }
         # Remove-Item -LiteralPath $ReleasePath -ErrorAction SilentlyContinue
         Compress-Archive -Path $outDir\* -DestinationPath $releaseDir\$ReleasePath-${ver}_$arch.zip -Force
         
         Remove-Item -LiteralPath $outDir\winssh-pageant.exe
     } else {
-        go build -ldflags -H=windowsgui -o $outDir\winssh-pageant-$arch.exe
+        go build -ldflags -H=windowsgui -trimpath -o $outDir\winssh-pageant-$arch.exe
     }
 }
 
