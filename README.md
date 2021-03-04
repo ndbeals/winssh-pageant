@@ -40,6 +40,11 @@ Until I decide on a better way to do this, you can auto-start this program by cr
 5. Locate and select the `winssh-pageant.exe` executable
 6. Finish and run the task (or otherwise log out and back in)
 
+### Antivirus Flagging
+Your antivirus software may flag this as malware, It's a false positive and a known quirk with go binaries (https://golang.org/doc/faq#virus). The official releases use reproducible builds via `-trimpath`. The expected checksums are posted with the release they're meant for, some users may choose to build this project themself and confirm the checksums, `sha256sum`.
+
+More information can be found here: https://github.com/ndbeals/winssh-pageant/issues/7#issuecomment-787520972
+
 
 ## Bug Reporting, Help & Feature Requests
 Please put report all
