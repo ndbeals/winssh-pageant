@@ -41,7 +41,7 @@ if ($Release)
     Write-Output "
 ## Checksums
 | Architecture | Checksum |
-|---|---|" > checksums.md
+|---|---|" | Out-File -FilePath checksums.md -Encoding utf8 
 }
 
 # Build for each architecture
@@ -56,7 +56,7 @@ Foreach ($arch in $Architectures)
         Compress-Archive -Path $outDir\* -DestinationPath $releaseDir\$ReleasePath-${ver}_$arch.zip -Force
 
         $hash = (Get-FileHash $outDir\winssh-pageant.exe).Hash 
-        Write-Output "| $arch | $hash |" >> checksums.md
+        Write-Output "| $arch | $hash |" | Out-File -FilePath checksums.md -Encoding utf8 -Append
         
         Remove-Item -LiteralPath $outDir\winssh-pageant.exe
     } else {
@@ -71,7 +71,7 @@ $env:GOARCH = $oldGOARCH
 # Cleanup
 if ($Release)
 {
-    Write-Output "" >> checksums.md
+    Write-Output "" | Out-File -FilePath checksums.md -Encoding utf8 -Append
     Remove-Item -LiteralPath $BuildPath -Force -Recurse -ErrorAction SilentlyContinue
 }
 
