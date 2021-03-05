@@ -70,10 +70,8 @@ jobs:
       run: |
         echo ${{ steps.build_changelog.outputs.changelog}}
         echo ${{ steps.build_changelog.outputs.changelog}} > changelog.md
-        cat changelog.md
         cat checksums.md
         cat checksums.md >> changelog.md
-        cat changelog.md
         
     - name: Release
       uses: softprops/action-gh-release@v1
