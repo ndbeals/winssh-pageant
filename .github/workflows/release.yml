@@ -30,9 +30,15 @@ jobs:
     - name: Release Build
       run: .\build.ps1 -release -ver ${{ github.event.inputs.releaseVersion }}
       shell: powershell
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      
+    - name: Upload checksums
+      uses: actions/upload-artifact@v2.2.2
+      with:
+        name: checksums
+        path: checksums.md
+        
+    - name: Upload Binaries
+      uses: actions/upload-artifact@v2.2.2
       with:
         name: release
         path: release/
@@ -43,10 +49,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Download Artifacts
+    - name: Download Binaries
       uses: actions/download-artifact@v2
       with:
         name: release
+    
+    - name: Download Checksums
+      uses: actions/download-artifact@v2.0.8
+      with:
+        name: checksums
       
     - name: Build Changelog
       id: build_changelog
@@ -54,35 +65,53 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         sinceTag: ${{ github.events.inputs.prevVersion }}
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Merge Body
+      run: |
+        echo ${{ steps.build_changelog.outputs.changelog}} > changelog.md
+        cat checksums.md >> changelog.md
+        
+    - name: Release
+      uses: softprops/action-gh-release@v1
       with:
-        release_name: Release ${{ github.event.inputs.releaseVersion }}
-        tag_name: ${{ github.event.inputs.releaseVersion }}
-        body: ${{ steps.build_changelog.outputs.changelog}}
+        body_path: changelog.md
         draft: true
-        prerelease: false
-
-    - name: Upload Release Asset x64
-      uses: actions/upload-release-asset@v1
+        name: Release ${{ github.event.inputs.releaseVersion }}
+        tag_name: ${{ github.event.inputs.releaseVersion }}
+        files: |
+          winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
+          winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
-        asset_name: winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
-        asset_content_type: application/zip
 
-    - name: Upload Release Asset x86
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
-        asset_name: winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
-        asset_content_type: application/zip
+#     - name: Create Release
+#       id: create_release
+#       uses: actions/create-release@v1
+#       env:
+#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       with:
+#         release_name: Release ${{ github.event.inputs.releaseVersion }}
+#         tag_name: ${{ github.event.inputs.releaseVersion }}
+#         bodyFile: changelog.md
+#         draft: true
+#         prerelease: false
+
+#     - name: Upload Release Asset x64
+#       uses: actions/upload-release-asset@v1
+#       env:
+#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       with:
+#         upload_url: ${{ steps.create_release.outputs.upload_url }}
+#         asset_path: winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
+#         asset_name: winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
+#         asset_content_type: application/zip
+
+#     - name: Upload Release Asset x86
+#       uses: actions/upload-release-asset@v1
+#       env:
+#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       with:
+#         upload_url: ${{ steps.create_release.outputs.upload_url }}
+#         asset_path: winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
+#         asset_name: winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
+#         asset_content_type: application/zip
