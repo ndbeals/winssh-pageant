@@ -30,9 +30,15 @@ jobs:
     - name: Release Build
       run: .\build.ps1 -release -ver ${{ github.event.inputs.releaseVersion }}
       shell: powershell
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      
+    - name: Upload checksums
+      uses: actions/upload-artifact@v2.2.2
+      with:
+        name: checksums
+        path: checksums.md
+        
+    - name: Upload Binaries
+      uses: actions/upload-artifact@v2.2.2
       with:
         name: release
         path: release/
@@ -43,10 +49,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Download Artifacts
+    - name: Download Binaries
       uses: actions/download-artifact@v2
       with:
         name: release
+    
+    - name: Download Checksums
+      uses: actions/download-artifact@v2.0.8
+      with:
+        name: checksums
       
     - name: Build Changelog
       id: build_changelog
@@ -54,6 +65,11 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         sinceTag: ${{ github.events.inputs.prevVersion }}
+        
+    - name: Merge Body
+      run: |
+        echo ${{ steps.build_changelog.outputs.changelog}} > changelog.md
+        cat checksums.md >> changelog.md
 
     - name: Create Release
       id: create_release
@@ -63,7 +79,7 @@ jobs:
       with:
         release_name: Release ${{ github.event.inputs.releaseVersion }}
         tag_name: ${{ github.event.inputs.releaseVersion }}
-        body: ${{ steps.build_changelog.outputs.changelog}}
+        bodyFile: changelog.md
         draft: true
         prerelease: false
 
