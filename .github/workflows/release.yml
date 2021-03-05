@@ -68,9 +68,7 @@ jobs:
         
     - name: Merge Body
       run: |
-        echo ${{ steps.build_changelog.outputs.changelog}}
-        echo ${{ steps.build_changelog.outputs.changelog}} > changelog.md
-        cat checksums.md
+        echo "${{ steps.build_changelog.outputs.changelog}}" > changelog.md
         cat checksums.md >> changelog.md
         
     - name: Release
