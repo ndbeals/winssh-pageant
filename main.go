@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"unsafe"
 
 	"github.com/lxn/win"
 )
@@ -27,9 +28,11 @@ func main() {
 	}
 
 	// main message loop
-	var msg win.MSG
-	for win.GetMessage(&msg, 0, 0, 0) > 0 {
-		win.TranslateMessage(&msg)
-		win.DispatchMessage(&msg)
+	msg := (*win.MSG)(unsafe.Pointer(win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))))
+	defer win.GlobalFree(win.HGLOBAL(unsafe.Pointer(msg)))
+	for win.GetMessage(msg, 0, 0, 0) > 0 {
+		win.TranslateMessage(msg)
+		win.DispatchMessage(msg)
 	}
+
 }
