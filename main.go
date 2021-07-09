@@ -28,8 +28,9 @@ func main() {
 	}
 
 	// main message loop
-	msg := (*win.MSG)(unsafe.Pointer(win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))))
-	defer win.GlobalFree(win.HGLOBAL(unsafe.Pointer(msg)))
+	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
+	msg := (*win.MSG)(unsafe.Pointer(hglobal))
+	defer win.GlobalFree(hglobal)
 	for win.GetMessage(msg, 0, 0, 0) > 0 {
 		win.TranslateMessage(msg)
 		win.DispatchMessage(msg)
