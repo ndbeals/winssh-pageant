@@ -2,6 +2,7 @@ package sshagent
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
 
 	"github.com/Microsoft/go-winio"
@@ -29,12 +30,48 @@ func QueryAgent(pipeName string, buf []byte) (result []byte, err error) {
 	}
 
 	reader := bufio.NewReader(conn)
-	res := make([]byte, AgentMaxMessageLength)
 
-	l, err = reader.Read(res)
+	// Magic numbers from the ssh-agent protocol specification.
+	// <https://github.com/openssh/openssh-portable/blob/4e636cf/PROTOCOL.agent>
+	// first 4 bytes are magic numbers related to the named pipe
+	magic := make([]byte, 4)
+	l, err = reader.Read(magic)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read from pipe %s: %w", pipeName, err)
 	}
+	// next byte is the SSH2_AGENT_IDENTITIES_ANSWER
+	sshHeader := make([]byte, 1)
+	l, err = reader.Read(sshHeader)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read from pipe %s: %w", pipeName, err)
+	}
+	// next 4 bytes (Uint32) is the number of keys
+	keyCountSlice := make([]byte, 4)
+	l, err = reader.Read(keyCountSlice)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read from pipe %s: %w", pipeName, err)
+	}
+	// convert to Uint32
+	keyCount := binary.BigEndian.Uint32(keyCountSlice)
 
-	return res[0:l], nil
+	// set to max agent message length minus the previous 9 bytes
+	res := make([]byte, AgentMaxMessageLength-9)
+	// verify the key count is > 0, otherwise skip
+	if keyCount > 0 {
+		l, err = reader.Read(res)
+		if err != nil {
+			fmt.Println("error")
+			fmt.Println(err)
+			return nil, fmt.Errorf("cannot read from pipe %s: %w", pipeName, err)
+		}
+	} else {
+		l = 0
+	}
+
+	// Concat all slices together
+	concatRes := append(magic, sshHeader...)
+	concatRes = append(concatRes, keyCountSlice...)
+	concatRes = append(concatRes, res[0:l]...)
+
+	return concatRes, nil
 }
