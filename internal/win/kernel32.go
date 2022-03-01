@@ -9,25 +9,13 @@ import (
 
 var (
 	// Library
-	libkernel32 *windows.LazyDLL
-
-	// Functions
-	getLastError    *windows.LazyProc
-	getModuleHandle *windows.LazyProc
-	globalAlloc     *windows.LazyProc
-	globalFree      *windows.LazyProc
-)
-
-func init() {
-	// Library
 	libkernel32 = windows.NewLazySystemDLL("kernel32.dll")
-
 	// Functions
-	getLastError = libkernel32.NewProc("GetLastError")
+	getLastError    = libkernel32.NewProc("GetLastError")
 	getModuleHandle = libkernel32.NewProc("GetModuleHandleW")
-	globalAlloc = libkernel32.NewProc("GlobalAlloc")
-	globalFree = libkernel32.NewProc("GlobalFree")
-}
+	globalAlloc     = libkernel32.NewProc("GlobalAlloc")
+	globalFree      = libkernel32.NewProc("GlobalFree")
+)
 
 func GetLastError() uint32 {
 	ret, _, _ := syscall.Syscall(getLastError.Addr(), 0,

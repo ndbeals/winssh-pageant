@@ -9,35 +9,18 @@ import (
 
 var (
 	// Library
-	libuser32 *windows.LazyDLL
-
-	// Functions
-	loadCursor       *windows.LazyProc
-	loadIcon         *windows.LazyProc
-	getSysColorBrush *windows.LazyProc
-	registerClassEx  *windows.LazyProc
-	createWindowEx   *windows.LazyProc
-	defWindowProc    *windows.LazyProc
-	getMessage       *windows.LazyProc
-	translateMessage *windows.LazyProc
-	dispatchMessage  *windows.LazyProc
-)
-
-func init() {
-	// is64bit := unsafe.Sizeof(uintptr(0)) == 8
-	// Library
 	libuser32 = windows.NewLazySystemDLL("user32.dll")
-
-	loadCursor = libuser32.NewProc("LoadCursorW")
-	loadIcon = libuser32.NewProc("LoadIconW")
+	// Functions
+	loadCursor       = libuser32.NewProc("LoadCursorW")
+	loadIcon         = libuser32.NewProc("LoadIconW")
 	getSysColorBrush = libuser32.NewProc("GetSysColorBrush")
-	registerClassEx = libuser32.NewProc("RegisterClassExW")
-	createWindowEx = libuser32.NewProc("CreateWindowExW")
-	defWindowProc = libuser32.NewProc("DefWindowProcW")
-	getMessage = libuser32.NewProc("GetMessageW")
+	registerClassEx  = libuser32.NewProc("RegisterClassExW")
+	createWindowEx   = libuser32.NewProc("CreateWindowExW")
+	defWindowProc    = libuser32.NewProc("DefWindowProcW")
+	getMessage       = libuser32.NewProc("GetMessageW")
 	translateMessage = libuser32.NewProc("TranslateMessage")
-	dispatchMessage = libuser32.NewProc("DispatchMessageW")
-}
+	dispatchMessage  = libuser32.NewProc("DispatchMessageW")
+)
 
 func MAKEINTRESOURCE(id uintptr) *uint16 {
 	return (*uint16)(unsafe.Pointer(id))

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"github.com/Microsoft/go-winio"
 )
@@ -60,8 +61,7 @@ func QueryAgent(pipeName string, buf []byte) (result []byte, err error) {
 	if keyCount > 0 {
 		byte_count, err = reader.Read(res)
 		if err != nil {
-			fmt.Println("error")
-			fmt.Println(err)
+			log.Println(err)
 			return nil, fmt.Errorf("cannot read from pipe %s: %w", pipeName, err)
 		}
 	} else {

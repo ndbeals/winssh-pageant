@@ -1,7 +1,7 @@
 {
-    "go.lintOnSave": "file",
-    "go.lintTool": "golangci-lint",
-    "go.lintFlags": [
-        "--fast"
-      ]
+    "go.lintTool": "staticcheck",
+    "go.lintOnSave": "workspace",
+    // "go.lintFlags": [
+    //     "--fast"
+    //   ]
 }

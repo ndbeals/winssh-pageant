@@ -86,7 +86,7 @@ func createPageantWindow() win.HWND {
 	inst := win.GetModuleHandle(nil)
 	atom := registerPageantWindow(inst)
 	if atom == 0 {
-		fmt.Println(fmt.Errorf("RegisterClass failed: %d", win.GetLastError()))
+		log.Println(fmt.Errorf("RegisterClass failed: %d", win.GetLastError()))
 		return 0
 	}
 

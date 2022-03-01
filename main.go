@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"runtime"
 	"unsafe"
 
@@ -24,16 +25,18 @@ func main() {
 
 	pageantWindow := createPageantWindow()
 	if pageantWindow == 0 {
-		fmt.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
+		log.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
 		return
 	}
 
-	// main message loop
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+
 	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
 	msg := (*win.MSG)(unsafe.Pointer(hglobal))
 	defer win.GlobalFree(hglobal)
+
+	// main message loop
 	for win.GetMessage(msg, 0, 0, 0) > 0 {
 		win.TranslateMessage(msg)
 		win.DispatchMessage(msg)
