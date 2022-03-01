@@ -19,10 +19,22 @@ import (
 
 	"encoding/hex"
 
-	"github.com/ndbeals/winssh-pageant/internal/win"
-
 	"github.com/ndbeals/winssh-pageant/internal/security"
 	"github.com/ndbeals/winssh-pageant/internal/sshagent"
+	"github.com/ndbeals/winssh-pageant/internal/win"
+)
+
+const (
+	// windows consts
+	CRYPTPROTECTMEMORY_BLOCK_SIZE    = 16
+	CRYPTPROTECTMEMORY_CROSS_PROCESS = 1
+	FILE_MAP_ALL_ACCESS              = 0xf001f
+	FILE_MAP_WRITE                   = 0x2
+
+	// Pageant consts
+	agentPipeName   = `\\.\pipe\pageant.%s.%s`
+	agentCopyDataID = 0x804e50ba
+	wndClassName    = "Pageant"
 )
 
 var (
@@ -31,18 +43,7 @@ var (
 
 	modkernel32          = syscall.NewLazyDLL("kernel32.dll")
 	procOpenFileMappingA = modkernel32.NewProc("OpenFileMappingA")
-)
-
-const (
-	// windows consts
-	CRYPTPROTECTMEMORY_BLOCK_SIZE    = 16
-	CRYPTPROTECTMEMORY_CROSS_PROCESS = 1
-	FILE_MAP_ALL_ACCESS              = 0xf001f
-
-	// Pageant consts
-	agentPipeName   = `\\.\pipe\pageant.%s.%s`
-	agentCopyDataID = 0x804e50ba
-	wndClassName    = "Pageant"
+	wndClassNamePtr, _   = syscall.UTF16PtrFromString(wndClassName)
 )
 
 // copyDataStruct is used to pass data in the WM_COPYDATA message.
@@ -53,7 +54,7 @@ type copyDataStruct struct {
 	lpData uintptr
 }
 
-func openFileMap(dwDesiredAccess uint32, bInheritHandle uint32, mapNamePtr uintptr) (windows.Handle, error) {
+func openFileMap(dwDesiredAccess, bInheritHandle uint32, mapNamePtr uintptr) (windows.Handle, error) {
 	mapPtr, _, err := procOpenFileMappingA.Call(uintptr(dwDesiredAccess), uintptr(bInheritHandle), mapNamePtr)
 	if err != nil && err.Error() == "The operation completed successfully." {
 		err = nil
@@ -75,7 +76,7 @@ func registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
 	wc.HCursor = win.LoadCursor(0, win.MAKEINTRESOURCE(win.IDC_IBEAM))
 	wc.HbrBackground = win.GetSysColorBrush(win.BLACK_BRUSH)
 	wc.LpszMenuName = nil
-	wc.LpszClassName = syscall.StringToUTF16Ptr(wndClassName)
+	wc.LpszClassName = wndClassNamePtr
 	wc.HIconSm = win.LoadIcon(0, win.MAKEINTRESOURCE(win.IDI_APPLICATION))
 
 	return win.RegisterClassEx(&wc)
@@ -91,8 +92,8 @@ func createPageantWindow() win.HWND {
 
 	// CreateWindowEx
 	pageantWindow := win.CreateWindowEx(win.WS_EX_APPWINDOW,
-		syscall.StringToUTF16Ptr(wndClassName),
-		syscall.StringToUTF16Ptr(wndClassName),
+		wndClassNamePtr,
+		wndClassNamePtr,
 		0,
 		0, 0,
 		0, 0,
@@ -109,21 +110,31 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 	case win.WM_COPYDATA:
 		{
 			copyData := (*copyDataStruct)(unsafe.Pointer(lParam))
+			if copyData.dwData != agentCopyDataID {
+				return 0
+			}
 
 			fileMap, err := openFileMap(FILE_MAP_ALL_ACCESS, 0, copyData.lpData)
+			if err != nil {
+				log.Println(err)
+				return 0
+			}
 			defer windows.CloseHandle(fileMap)
 
 			// check security
 			ourself, err := security.GetUserSID()
 			if err != nil {
+				log.Println(err)
 				return 0
 			}
 			ourself2, err := security.GetDefaultSID()
 			if err != nil {
+				log.Println(err)
 				return 0
 			}
 			mapOwner, err := security.GetHandleSID(fileMap)
 			if err != nil {
+				log.Println(err)
 				return 0
 			}
 			if !windows.EqualSid(mapOwner, ourself) && !windows.EqualSid(mapOwner, ourself2) {
@@ -131,8 +142,9 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 			}
 
 			// Passed security checks, copy data
-			sharedMemory, err := windows.MapViewOfFile(fileMap, 2, 0, 0, 0)
+			sharedMemory, err := windows.MapViewOfFile(fileMap, FILE_MAP_WRITE, 0, 0, 0)
 			if err != nil {
+				log.Println(err)
 				return 0
 			}
 			defer windows.UnmapViewOfFile(sharedMemory)
@@ -140,13 +152,16 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 			sharedMemoryArray := (*[sshagent.AgentMaxMessageLength]byte)(unsafe.Pointer(sharedMemory))
 
 			size := binary.BigEndian.Uint32(sharedMemoryArray[:4]) + 4
-			// size += 4
 			if size > sshagent.AgentMaxMessageLength {
 				return 0
 			}
 
-			// result, err := sshagent.QueryAgent(*sshPipe, sharedMemoryArray[:size], sshagent.AgentMaxMessageLength)
+			// Query the windows OpenSSH agent via the windows named pipe
 			result, err := sshagent.QueryAgent(*sshPipe, sharedMemoryArray[:size])
+			if err != nil {
+				log.Println(err)
+				return 0
+			}
 			copy(sharedMemoryArray[:], result)
 			// success
 			return 1
@@ -177,6 +192,10 @@ func capiObfuscateString(realname string) string {
 
 func pipeProxy() {
 	currentUser, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	pipeName := fmt.Sprintf(agentPipeName, strings.Split(currentUser.Username, `\`)[1], capiObfuscateString(wndClassName))
 	listener, err := winio.ListenPipe(pipeName, nil)
 

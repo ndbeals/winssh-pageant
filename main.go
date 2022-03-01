@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/lxn/win"
+	"github.com/ndbeals/winssh-pageant/internal/win"
 )
 
 var (
@@ -30,6 +30,7 @@ func main() {
 
 	// main message loop
 	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
 	msg := (*win.MSG)(unsafe.Pointer(hglobal))
 	defer win.GlobalFree(hglobal)
