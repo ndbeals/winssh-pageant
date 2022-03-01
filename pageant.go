@@ -15,10 +15,11 @@ import (
 	"encoding/binary"
 
 	"github.com/Microsoft/go-winio"
-	"github.com/lxn/win"
 	"golang.org/x/sys/windows"
 
 	"encoding/hex"
+
+	"github.com/ndbeals/winssh-pageant/internal/win"
 
 	"github.com/ndbeals/winssh-pageant/internal/security"
 	"github.com/ndbeals/winssh-pageant/internal/sshagent"
