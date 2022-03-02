@@ -1,0 +1,39 @@
+{
+    "FixedFileInfo": {
+        "FileVersion": {
+            "Major": 0,
+            "Minor": 0
+        },
+        "ProductVersion": {
+            "Major": 0,
+            "Minor": 0
+        },
+        "FileFlagsMask": "3f",
+        "FileFlags ": "00",
+        "FileOS": "040004",
+        "FileType": "01",
+        "FileSubType": "00"
+    },
+    "StringFileInfo": {
+        "Comments": "comments",
+        "CompanyName": "CompanyName",
+        "FileDescription": "WinSSH-Pageant Bridge",
+        "FileVersion": "",
+        "InternalName": "internalname",
+        "LegalCopyright": "Copyright © 2020-2022, Nathan Beals",
+        "LegalTrademarks": "",
+        "OriginalFilename": "winssh-pageant.exe",
+        "PrivateBuild": "",
+        "ProductName": "WinSSH-Pageant",
+        "ProductVersion": "",
+        "SpecialBuild": ""
+    },
+    "VarFileInfo": {
+        "Translation": {
+            "LangID": "0409",
+            "CharsetID": "04B0"
+        }
+    },
+    "IconPath": "icon/icon.ico",
+    "ManifestPath": ""
+}

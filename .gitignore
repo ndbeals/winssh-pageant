@@ -17,3 +17,8 @@ vendor/
 # Build artifacts
 build/*
 release/*
+
+# resources and WiX Toolset
+resources/tmp
+resources/*.msi
+resources/*.syso

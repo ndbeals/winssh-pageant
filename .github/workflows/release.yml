@@ -18,7 +18,7 @@ jobs:
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
-        go-version: ^1.16
+        go-version: ^1.17
       id: go
 
     - name: Check out code into the Go module directory
@@ -26,6 +26,14 @@ jobs:
 
     - name: Get dependencies
       run: go get -v -t -d ./...
+    
+    - name: goversioninfo install
+      run: go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
+
+    - name: Choco help
+      uses: crazy-max/ghaction-chocolatey@v1
+      with:
+        args: wixtoolset go-msi
 
     - name: Release Build
       run: .\build.ps1 -release -ver ${{ github.event.inputs.releaseVersion }}
@@ -81,5 +89,7 @@ jobs:
         files: |
           winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.zip
           winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.zip
+          winssh-pageant-${{ github.event.inputs.releaseVersion }}_amd64.msi
+          winssh-pageant-${{ github.event.inputs.releaseVersion }}_386.msi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
