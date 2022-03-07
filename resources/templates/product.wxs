@@ -71,16 +71,26 @@
             {{end}}
         </Directory>
 
+        <Property Id="WixShellExecTarget" Value="[#ApplicationFile0]" />
+        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+
+        <Property Id="WixQuietExecCmdLine" Value='"taskkill.exe" /F /IM winssh-pageant.exe'/>
+        <CustomAction Id="AppKill" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" Impersonate="yes" />
+
         {{range $i, $e := .InstallHooks}}
         <SetProperty Id="CustomInstallExec{{$i}}" Value="{{$e.CookedCommand}}" Before="CustomInstallExec{{$i}}" Sequence="execute" />
-        <CustomAction Id="CustomInstallExec{{$i}}" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="check" Impersonate="no" />
+        <CustomAction Id="CustomInstallExec{{$i}}" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="commit" Return="ignore" Impersonate="yes" />
         {{end}}
-      {{range $i, $e := .UninstallHooks}}
+        {{range $i, $e := .UninstallHooks}}
         <SetProperty Id="CustomUninstallExec{{$i}}" Value="{{$e.CookedCommand}}" Before="CustomUninstallExec{{$i}}" Sequence="execute" />
-        <CustomAction Id="CustomUninstallExec{{$i}}" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="deferred" Return="check" Impersonate="no" />
+        <CustomAction Id="CustomUninstallExec{{$i}}" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" Impersonate="yes" />
         {{end}}
+
         <InstallExecuteSequence>
             <RemoveExistingProducts After="InstallValidate" />
+            <Custom Action="AppKill" Before="InstallValidate">REMOVE OR REINSTALL</Custom>
+            <Custom Action="LaunchApplication" After="InstallFinalize">(NOT Installed OR REINSTALL) AND NOT REMOVE</Custom>
+
             {{range $i, $e := .InstallHooks}}
             <Custom Action="CustomInstallExec{{$i}}" After="{{if eq $i 0}}InstallFiles{{else}}CustomInstallExec{{dec $i}}{{end}}">NOT Installed AND NOT REMOVE</Custom>
             {{end}}

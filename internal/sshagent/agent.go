@@ -73,5 +73,6 @@ func QueryAgent(pipeName string, buf []byte) (result []byte, err error) {
 	concatRes = append(concatRes, keyCountSlice...)
 	concatRes = append(concatRes, res[0:byte_count]...)
 
+	res = nil // Explicitly clear the result to prevent memory leak
 	return concatRes, nil
 }

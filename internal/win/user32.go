@@ -20,6 +20,7 @@ var (
 	getMessage       = libuser32.NewProc("GetMessageW")
 	translateMessage = libuser32.NewProc("TranslateMessage")
 	dispatchMessage  = libuser32.NewProc("DispatchMessageW")
+	postQuitMessage  = libuser32.NewProc("PostQuitMessage")
 )
 
 func MAKEINTRESOURCE(id uintptr) *uint16 {
@@ -120,4 +121,11 @@ func DispatchMessage(msg *MSG) uintptr {
 		0)
 
 	return ret
+}
+
+func PostQuitMessage(exitCode int32) {
+	syscall.Syscall(postQuitMessage.Addr(), 1,
+		uintptr(exitCode),
+		0,
+		0)
 }

@@ -163,8 +163,20 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 				return 0
 			}
 			copy(sharedMemoryArray[:], result)
-			// success
+
+			// success, explicitly Clean up some resources (better to be certain it get's GC'd)
+			ourself = nil
+			ourself2 = nil
+			mapOwner = nil
+			sharedMemoryArray = nil
+			result = nil
+
 			return 1
+		}
+	case win.WM_DESTROY, win.WM_CLOSE, win.WM_QUIT, win.WM_QUERYENDSESSION: // Handle system shutdowns and process sigterms etc
+		{
+			win.PostQuitMessage(0)
+			return 0
 		}
 	}
 
@@ -198,7 +210,6 @@ func pipeProxy() {
 
 	pipeName := fmt.Sprintf(agentPipeName, strings.Split(currentUser.Username, `\`)[1], capiObfuscateString(wndClassName))
 	listener, err := winio.ListenPipe(pipeName, nil)
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,7 +221,6 @@ func pipeProxy() {
 			log.Println(err)
 			return
 		}
-
 		go pipeListen(conn)
 	}
 }

@@ -15,11 +15,11 @@
         "FileSubType": "00"
     },
     "StringFileInfo": {
-        "Comments": "comments",
-        "CompanyName": "CompanyName",
+        "Comments": "Pageant client bridge to OpenSSH Agent",
+        "CompanyName": "Nathan Beals",
         "FileDescription": "WinSSH-Pageant Bridge",
         "FileVersion": "",
-        "InternalName": "internalname",
+        "InternalName": "WinSSH-Pageant",
         "LegalCopyright": "Copyright © 2020-2022, Nathan Beals",
         "LegalTrademarks": "",
         "OriginalFilename": "winssh-pageant.exe",

@@ -25,23 +25,25 @@ func main() {
 		go pipeProxy()
 	}
 
+	runtime.LockOSThread()
+
 	pageantWindow := createPageantWindow()
 	if pageantWindow == 0 {
 		log.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
 		return
 	}
 
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
 	msg := (*win.MSG)(unsafe.Pointer(hglobal))
-	defer win.GlobalFree(hglobal)
 
 	// main message loop
 	for win.GetMessage(msg, 0, 0, 0) > 0 {
 		win.TranslateMessage(msg)
 		win.DispatchMessage(msg)
 	}
+
+	// Explicitly release the global memory handle
+	win.GlobalFree(hglobal)
+	runtime.UnlockOSThread()
 
 }

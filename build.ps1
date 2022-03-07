@@ -34,7 +34,7 @@ if($ver.Length -lt 1)
 {
     $ver = git describe --tags --abbrev=0
 }
-$_ = $ver -match '[a-zA-Z]*(\d+)\.(\d+)'
+$__ = $ver -match '[a-zA-Z]*(\d+)\.(\d+)'
 $verMajor = $Matches.1
 $verMinor = $Matches.2
 
@@ -46,13 +46,13 @@ Pop-Location
 # Build release package
 if ($Release)
 {
-    # Remove-Item -LiteralPath $ReleasePath -ErrorAction SilentlyContinue
-    # Remove-Item -Path checksums.md -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $ReleasePath -ErrorAction SilentlyContinue
+    Remove-Item -Path checksums.md -ErrorAction SilentlyContinue
 
     Write-Output "
 ## Checksums
-| Architecture | Checksum |
-|---|---|" | Out-File -FilePath checksums.md -Encoding utf8 
+| Architecture | File Name | Checksum |
+|---|---|---|" | Out-File -FilePath checksums.md -Encoding utf8 
 }
 
 function PrepareBuildDir ([string] $path, [string] $arch) {
@@ -60,7 +60,6 @@ function PrepareBuildDir ([string] $path, [string] $arch) {
 
     Copy-Item -Force .\README.md $buildDir
     Copy-Item -Force .\LICENSE $buildDir
-    # Copy-Item -Force "resources/icon/icon.ico" $buildDir
     Copy-Item -Force "resources/resource.syso" ./
 
     Copy-Item -Recurse -Force -Path "resources/templates" -Destination $buildDir
@@ -100,11 +99,15 @@ Foreach ($arch in $Architectures)
         CreateStandaloneZip $buildDir $releaseDir $arch
         
         Push-Location $buildDir
-        go-msi make --path $buildDir\wix.json --src $buildDir\templates --out $buildDir\tmp --version $ver --arch $arch --msi $releaseDir\winssh-pageant-${ver}_$arch.msi
+        $msiName = "winssh-pageant-${ver}_${arch}.msi"
+        go-msi make --path $buildDir\wix.json --src $buildDir\templates --out $buildDir\tmp --version $ver --arch $arch --msi "${releaseDir}\${msiName}"
         Pop-Location
 
-        $checksum = (Get-FileHash -Algorithm SHA256 -Path $buildDir\$binary).Hash
-        Write-Output "| $arch | $checksum |" | Out-File -FilePath checksums.md -Encoding utf8 -Append
+        $checksum = (Get-FileHash -Algorithm SHA256 -Path "${buildDir}\${binary}").Hash
+        Write-Output "| $arch | $binary | ``${checksum}`` |" | Out-File -FilePath checksums.md -Encoding utf8 -Append
+
+        $checksum = (Get-FileHash -Algorithm SHA256 -Path "${releaseDir}\${msiName}").Hash
+        Write-Output "| $arch | $msiName | ``$checksum`` |" | Out-File -FilePath checksums.md -Encoding utf8 -Append
     }
 }
 
@@ -115,7 +118,7 @@ $env:GOARCH = $oldGOARCH
 # Cleanup
 if ($Release)
 {
-    Write-Output "" >> Out-File -FilePath checksums.md -Encoding utf8 -Append
+    Write-Output "" | Out-File -FilePath checksums.md -Encoding utf8 -Append
     Remove-Item -LiteralPath $BuildPath -Force -Recurse -ErrorAction SilentlyContinue
     Remove-Item -Path .\resource.syso -Force -ErrorAction SilentlyContinue
     Remove-Item -Path .\resources\resource.syso -Force -ErrorAction SilentlyContinue

@@ -15,8 +15,9 @@
 vendor/
 
 # Build artifacts
-build/*
-release/*
+build/
+release/
+tmp/
 
 # resources and WiX Toolset
 resources/tmp
