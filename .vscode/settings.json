@@ -1,7 +1,4 @@
 {
-    "go.lintTool": "staticcheck",
+    "go.lintTool": "revive",
     "go.lintOnSave": "workspace",
-    // "go.lintFlags": [
-    //     "--fast"
-    //   ]
 }

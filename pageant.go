@@ -1,5 +1,6 @@
 package main
 
+//revive:disable:var-naming,exported
 import (
 	"bufio"
 	"crypto/sha256"

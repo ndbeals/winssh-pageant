@@ -1,5 +1,6 @@
 package win
 
+//revive:disable:var-naming,exported
 const (
 	IDI_APPLICATION    = 32512
 	IDC_IBEAM          = 32513
