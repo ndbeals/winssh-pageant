@@ -63,6 +63,7 @@ func RegisterClassEx(windowClass *WNDCLASSEX) ATOM {
 	return ATOM(ret)
 }
 
+//revive:disable:line-length-limit,argument-limit
 func CreateWindowEx(dwExStyle uint32, lpClassName, lpWindowName *uint16, dwStyle uint32, x, y, nWidth, nHeight int32, hWndParent HWND, hMenu HMENU, hInstance HINSTANCE, lpParam unsafe.Pointer) HWND {
 	ret, _, _ := syscall.Syscall12(createWindowEx.Addr(), 12,
 		uintptr(dwExStyle),
@@ -81,10 +82,10 @@ func CreateWindowEx(dwExStyle uint32, lpClassName, lpWindowName *uint16, dwStyle
 	return HWND(ret)
 }
 
-func DefWindowProc(hWnd HWND, Msg uint32, wParam, lParam uintptr) uintptr {
+func DefWindowProc(hWnd HWND, msg uint32, wParam, lParam uintptr) uintptr {
 	ret, _, _ := syscall.Syscall6(defWindowProc.Addr(), 4,
 		uintptr(hWnd),
-		uintptr(Msg),
+		uintptr(msg),
 		wParam,
 		lParam,
 		0,

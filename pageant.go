@@ -174,8 +174,8 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 
 			return 1
 		}
-	case win.WM_DESTROY, win.WM_CLOSE, win.WM_QUIT, win.WM_QUERYENDSESSION: // Handle system shutdowns and process sigterms etc
-		{
+	case win.WM_DESTROY, win.WM_CLOSE, win.WM_QUIT, win.WM_QUERYENDSESSION:
+		{ // Handle system shutdowns and process sigterms etc
 			win.PostQuitMessage(0)
 			return 0
 		}
@@ -196,7 +196,8 @@ func capiObfuscateString(realname string) string {
 	pDataIn := uintptr(unsafe.Pointer(&cryptdata[0]))
 	cbDataIn := uintptr(cryptlen)
 	dwFlags := uintptr(CRYPTPROTECTMEMORY_CROSS_PROCESS)
-	// pageant ignores errors
+
+	//revive:disable:unhandled-error  - pageant ignores errors
 	procCryptProtectMemory.Call(pDataIn, cbDataIn, dwFlags)
 
 	hash := sha256.Sum256(cryptdata)
@@ -206,13 +207,14 @@ func capiObfuscateString(realname string) string {
 func pipeProxy() {
 	currentUser, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
-	pipeName := fmt.Sprintf(agentPipeName, strings.Split(currentUser.Username, `\`)[1], capiObfuscateString(wndClassName))
+	namePart := strings.Split(currentUser.Username, `\`)[1]
+	pipeName := fmt.Sprintf(agentPipeName, namePart, capiObfuscateString(wndClassName))
 	listener, err := winio.ListenPipe(pipeName, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	defer listener.Close()
 

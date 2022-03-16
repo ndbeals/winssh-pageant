@@ -45,5 +45,4 @@ func main() {
 	// Explicitly release the global memory handle
 	win.GlobalFree(hglobal)
 	runtime.UnlockOSThread()
-
 }
