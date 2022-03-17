@@ -12,8 +12,14 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
 
 # Build artifacts
-build/*
-release/*
+build/
+release/
+tmp/
+
+# resources and WiX Toolset
+resources/tmp
+resources/*.msi
+resources/*.syso

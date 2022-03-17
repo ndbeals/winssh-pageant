@@ -1,0 +1,30 @@
+{
+  "product": "WinSSH-Pageant",
+  "company": "Nathan Beals",
+  "license": "LICENSE",
+  "upgrade-code": "307f134f-bae2-4610-9f8f-6a7c7ddb3980",
+  "files": {
+    "guid": "96945627-eef8-4361-800e-0585b34505a7",
+    "items": [
+      "winssh-pageant.exe"
+    ]
+  },
+  "env": {
+    "guid": "",
+    "vars": null
+  },
+  "shortcuts": {
+    "guid": "d8c7fe28-d46a-4fc4-a7a8-0ed7276dc8ba",
+    "items": [
+      {
+        "name": "WinSSH-Pageant",
+        "description": "Pageant for WinSSH",
+        "target": "[INSTALLDIR]\\winssh-pageant.exe",
+        "wdir": "INSTALLDIR",
+        "arguments": ""
+      }
+    ]
+  },
+  "hooks": [],
+  "choco": {}
+}

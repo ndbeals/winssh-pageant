@@ -1,0 +1,5 @@
+{
+    "go.lintTool": "revive",
+    "go.lintFlags": ["-config", "resources/revive.toml"],
+    "go.lintOnSave": "workspace",
+}

@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"runtime"
 	"unsafe"
 
-	"github.com/lxn/win"
+	"github.com/ndbeals/winssh-pageant/internal/win"
 )
 
 var (
@@ -22,20 +23,24 @@ func main() {
 		go pipeProxy()
 	}
 
+	runtime.LockOSThread()
+
 	pageantWindow := createPageantWindow()
 	if pageantWindow == 0 {
-		fmt.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
+		log.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
 		return
 	}
 
-	// main message loop
-	runtime.LockOSThread()
 	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
 	msg := (*win.MSG)(unsafe.Pointer(hglobal))
-	defer win.GlobalFree(hglobal)
+
+	// main message loop
 	for win.GetMessage(msg, 0, 0, 0) > 0 {
 		win.TranslateMessage(msg)
 		win.DispatchMessage(msg)
 	}
 
+	// Explicitly release the global memory handle
+	win.GlobalFree(hglobal)
+	runtime.UnlockOSThread()
 }

@@ -10,13 +10,16 @@ jobs:
 
   build:
     name: Build
-    runs-on: windows-latest
-    steps:
+    runs-on: ubuntu-latest
+    env:
+      GOOS: windows
+      GOARCH: amd64
 
+    steps:
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
-        go-version: ^1.14
+        go-version: ^1.17
       id: go
 
     - name: Check out code into the Go module directory
@@ -24,6 +27,15 @@ jobs:
 
     - name: Get dependencies
       run: go get -v -t -d ./...
+
+    - name: Run Revive Action
+      uses: docker://morphy/revive-action:v2
+      with:
+        config: resources/revive.toml
+        entrypoint: /entrypoint.sh
+        
+    - name: Check formatting
+      run: test -z $(gofmt -l .) || (gofmt -l . && exit 1)
 
     - name: Build
       run: go build -v .
