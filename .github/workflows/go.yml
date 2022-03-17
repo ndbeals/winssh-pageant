@@ -31,7 +31,7 @@ jobs:
     - name: Run Revive Action
       uses: docker://morphy/revive-action:v2
       with:
-        config: revive.toml
+        config: resources/revive.toml
         entrypoint: /entrypoint.sh
         
     - name: Check formatting

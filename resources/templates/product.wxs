@@ -12,11 +12,14 @@
 
     <Product Id="*" UpgradeCode="{{.UpgradeCode}}" Name="{{.Product}}" Version="{{.VersionOk}}" Manufacturer="{{.Company}}" Language="1033">
 
-        <Package InstallerVersion="500" Compressed="yes" Comments="Windows Installer Package" InstallScope="perUser" />
+        <Package InstallerVersion="500" Compressed="yes" Comments="WinSSH-Pageant Installer Package" InstallScope="perUser" />
         <Property Id="ALLUSERS" Secure="yes" Value="2"/>
         <Property Id="MSIINSTALLPERUSER" Secure="yes" Value="1" />
 
         <Media Id="1" Cabinet="product.cab" EmbedCab="yes" />
+
+        <Icon Id="icon.ico" SourceFile="..\icon.ico"/>
+        <Property Id="ARPPRODUCTICON" Value="icon.ico" />
 
         <Upgrade Id="{{.UpgradeCode}}">
             <UpgradeVersion Minimum="{{.VersionOk}}" OnlyDetect="yes" Property="NEWERVERSIONDETECTED" />

@@ -38,10 +38,6 @@ $__ = $ver -match '[a-zA-Z]*(\d+)\.(\d+)'
 $verMajor = $Matches.1
 $verMinor = $Matches.2
 
-Push-Location resources
-goversioninfo -ver-major ${verMajor} -ver-minor ${verMinor} -product-version ${ver} -product-ver-major ${verMajor} -product-ver-minor ${verMinor}
-Pop-Location
-
 
 # Build release package
 if ($Release)
@@ -53,6 +49,10 @@ if ($Release)
 ## Checksums
 | Architecture | File Name | Checksum |
 |---|---|---|" | Out-File -FilePath checksums.md -Encoding utf8 
+
+    Push-Location resources
+    goversioninfo -ver-major ${verMajor} -ver-minor ${verMinor} -product-version ${ver} -product-ver-major ${verMajor} -product-ver-minor ${verMinor} -platform-specific
+    Pop-Location
 }
 
 function PrepareBuildDir ([string] $path, [string] $arch) {
@@ -60,15 +60,14 @@ function PrepareBuildDir ([string] $path, [string] $arch) {
 
     Copy-Item -Force .\README.md $buildDir
     Copy-Item -Force .\LICENSE $buildDir
-    Copy-Item -Force "resources/resource.syso" ./
+    Copy-Item -Force "resources/resource*.syso" ./
 
     Copy-Item -Recurse -Force -Path "resources/templates" -Destination $buildDir
     Copy-Item -Force -Path "resources/wix.json" -Destination $buildDir
+    Copy-Item -Force -Path "resources/icon/icon.ico" -Destination $buildDir
 
     return $buildDir
 }
-
-# function CleanupBuild
 
 function CreateStandaloneZip ([string] $path, [string] $outDir, [string] $arch) {
     Compress-Archive -Force -Path $path\README.md,$path\LICENSE,$path\*.exe -DestinationPath $outDir\$ReleasePath-${ver}_$arch.zip
@@ -100,7 +99,7 @@ Foreach ($arch in $Architectures)
         
         Push-Location $buildDir
         $msiName = "winssh-pageant-${ver}_${arch}.msi"
-        go-msi make --path $buildDir\wix.json --src $buildDir\templates --out $buildDir\tmp --version $ver --arch $arch --msi "${releaseDir}\${msiName}"
+        go-msi make --path $buildDir\wix.json --src $buildDir\templates --out $buildDir\tmp --version $ver --arch $arch --msi "${releaseDir}\${msiName}" --keep
         Pop-Location
 
         $checksum = (Get-FileHash -Algorithm SHA256 -Path "${buildDir}\${binary}").Hash
@@ -120,8 +119,8 @@ if ($Release)
 {
     Write-Output "" | Out-File -FilePath checksums.md -Encoding utf8 -Append
     Remove-Item -LiteralPath $BuildPath -Force -Recurse -ErrorAction SilentlyContinue
-    Remove-Item -Path .\resource.syso -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path .\resources\resource.syso -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path .\resource*.syso -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path .\resources\resource*.syso -Force -ErrorAction SilentlyContinue
 }
 
 exit $returnValue
