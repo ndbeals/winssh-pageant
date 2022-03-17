@@ -32,6 +32,7 @@ jobs:
       uses: docker://morphy/revive-action:v2
       with:
         config: revive.toml
+        entrypoint: /entrypoint.sh
         
     - name: Check formatting
       run: test -z $(gofmt -l .) || (gofmt -l . && exit 1)
