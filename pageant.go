@@ -1,6 +1,5 @@
 package main
 
-//revive:disable:var-naming,exported
 import (
 	"bufio"
 	"crypto/sha256"
@@ -27,6 +26,7 @@ import (
 
 const (
 	// windows consts
+	//revive:disable:var-naming,exported
 	CRYPTPROTECTMEMORY_BLOCK_SIZE    = 16
 	CRYPTPROTECTMEMORY_CROSS_PROCESS = 1
 	FILE_MAP_ALL_ACCESS              = 0xf001f

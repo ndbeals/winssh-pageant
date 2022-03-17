@@ -1,6 +1,5 @@
 package win
 
-//revive:disable:var-naming,exported
 import (
 	"syscall"
 	"unsafe"

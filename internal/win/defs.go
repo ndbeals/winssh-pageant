@@ -1,7 +1,7 @@
 package win
 
-//revive:disable:var-naming,exported
 const (
+	//revive:disable:var-naming,exported
 	IDI_APPLICATION    = 32512
 	IDC_IBEAM          = 32513
 	BLACK_BRUSH        = 4
