@@ -26,7 +26,7 @@ jobs:
       run: go get -v -t -d ./...
 
     - name: Run Revive Action
-      uses: docker://morphy/revive-action:v2
+      uses: morphy2k/revive-action@v2
       with:
         config: revive.toml
 
