@@ -18,12 +18,19 @@ var (
 func main() {
 	flag.Parse()
 
+	// Check if any application claiming to be a Pageant Window is already running
+	if doesPagentWindowExist() {
+		log.Println("This application is already running")
+		return
+	}
+
 	// Start a proxy/redirector for the pageant named pipes
 	if !*noPageantPipe {
 		go pipeProxy()
 	}
 
 	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	pageantWindow := createPageantWindow()
 	if pageantWindow == 0 {
@@ -42,5 +49,4 @@ func main() {
 
 	// Explicitly release the global memory handle
 	win.GlobalFree(hglobal)
-	runtime.UnlockOSThread()
 }

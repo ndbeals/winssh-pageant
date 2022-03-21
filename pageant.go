@@ -64,6 +64,10 @@ func openFileMap(dwDesiredAccess, bInheritHandle uint32, mapNamePtr uintptr) (wi
 	return windows.Handle(mapPtr), err
 }
 
+func doesPagentWindowExist() bool {
+	return win.FindWindow(wndClassNamePtr, nil) != 0
+}
+
 func registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
 	var wc win.WNDCLASSEX
 	wc.Style = 0
@@ -215,16 +219,17 @@ func pipeProxy() {
 	listener, err := winio.ListenPipe(pipeName, nil)
 	if err != nil {
 		log.Println(err)
-	}
-	defer listener.Close()
+	} else {
+		defer listener.Close()
 
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Println(err)
-			return
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			go pipeListen(conn)
 		}
-		go pipeListen(conn)
 	}
 }
 
