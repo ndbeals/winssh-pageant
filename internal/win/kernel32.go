@@ -15,6 +15,7 @@ var (
 	getModuleHandle = libkernel32.NewProc("GetModuleHandleW")
 	globalAlloc     = libkernel32.NewProc("GlobalAlloc")
 	globalFree      = libkernel32.NewProc("GlobalFree")
+	attachConsole   = libkernel32.NewProc("AttachConsole")
 )
 
 func GetLastError() uint32 {

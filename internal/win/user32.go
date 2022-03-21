@@ -21,6 +21,7 @@ var (
 	translateMessage = libuser32.NewProc("TranslateMessage")
 	dispatchMessage  = libuser32.NewProc("DispatchMessageW")
 	postQuitMessage  = libuser32.NewProc("PostQuitMessage")
+	findWindow       = libuser32.NewProc("FindWindowW")
 )
 
 func MAKEINTRESOURCE(id uintptr) *uint16 {
@@ -129,4 +130,13 @@ func PostQuitMessage(exitCode int32) {
 		uintptr(exitCode),
 		0,
 		0)
+}
+
+func FindWindow(lpClassName, lpWindowName *uint16) HWND {
+	ret, _, _ := syscall.Syscall(findWindow.Addr(), 2,
+		uintptr(unsafe.Pointer(lpClassName)),
+		uintptr(unsafe.Pointer(lpWindowName)),
+		0)
+
+	return HWND(ret)
 }

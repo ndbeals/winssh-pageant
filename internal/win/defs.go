@@ -2,16 +2,18 @@ package win
 
 const (
 	//revive:disable:var-naming,exported
-	IDI_APPLICATION    = 32512
-	IDC_IBEAM          = 32513
-	BLACK_BRUSH        = 4
-	WM_COPYDATA        = 74
-	WM_DESTROY         = 2
-	WM_CLOSE           = 16
-	WM_QUERYENDSESSION = 17
-	WM_QUIT            = 18
-	WS_EX_TOOLWINDOW   = 0x00000080
-	WS_EX_APPWINDOW    = 0x00040000
+	IDI_APPLICATION       = 32512
+	IDC_IBEAM             = 32513
+	BLACK_BRUSH           = 4
+	WM_COPYDATA           = 74
+	WM_DESTROY            = 2
+	WM_CLOSE              = 16
+	WM_QUERYENDSESSION    = 17
+	WM_QUIT               = 18
+	WS_EX_TOOLWINDOW      = 0x00000080
+	WS_EX_APPWINDOW       = 0x00040000
+	ATTACH_PARENT_PROCESS = uintptr(^uint32(0)) // (DWORD)-1
+	ERROR_INVALID_HANDLE  = 6
 )
 
 type (
