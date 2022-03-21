@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 	"unsafe"
 
@@ -15,12 +16,19 @@ var (
 	noPageantPipe = flag.Bool("no-pageant-pipe", false, "Toggle pageant named pipe proxying")
 )
 
+var oldStdin, oldStdout, oldStderr *os.File
+
 func main() {
 	flag.Parse()
 
+	err := win.FixConsoleIfNeeded()
+	if err != nil {
+		log.Fatalf("FixConsoleOutput: %v\n", err)
+	}
+
 	// Check if any application claiming to be a Pageant Window is already running
 	if doesPagentWindowExist() {
-		log.Println("This application is already running")
+		log.Println("This application is already running, exiting.")
 		return
 	}
 

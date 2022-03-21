@@ -13,11 +13,10 @@ import (
 	"unsafe"
 
 	"encoding/binary"
+	"encoding/hex"
 
 	"github.com/Microsoft/go-winio"
 	"golang.org/x/sys/windows"
-
-	"encoding/hex"
 
 	"github.com/ndbeals/winssh-pageant/internal/security"
 	"github.com/ndbeals/winssh-pageant/internal/sshagent"

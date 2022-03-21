@@ -78,7 +78,7 @@
         <Property Id="WixShellExecTarget" Value="[#ApplicationFile0]" />
         <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
 
-        <Property Id="WixQuietExecCmdLine" Value='"taskkill.exe" /F /IM winssh-pageant.exe'/>
+        <Property Id="WixQuietExecCmdLine" Value='"taskkill.exe" /F /IM {{ slice (index .Files.Items 0) 3}}'/>
         <CustomAction Id="AppKill" BinaryKey="WixCA" DllEntry="WixQuietExec" Execute="immediate" Return="ignore" Impersonate="yes" />
 
         {{range $i, $e := .InstallHooks}}
