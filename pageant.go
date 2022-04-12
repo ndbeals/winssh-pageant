@@ -56,10 +56,11 @@ type copyDataStruct struct {
 
 func openFileMap(dwDesiredAccess, bInheritHandle uint32, mapNamePtr uintptr) (windows.Handle, error) {
 	mapPtr, _, err := procOpenFileMappingA.Call(uintptr(dwDesiredAccess), uintptr(bInheritHandle), mapNamePtr)
-	if err != nil && err.Error() == "The operation completed successfully." {
+
+	//Properly compare syscall.Errno to number, instead of naive (i18n-unaware) string comparison
+	if err.(syscall.Errno) == windows.ERROR_SUCCESS {
 		err = nil
 	}
-
 	return windows.Handle(mapPtr), err
 }
 
