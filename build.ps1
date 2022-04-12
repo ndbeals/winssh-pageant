@@ -38,6 +38,7 @@ $__ = $ver -match '[a-zA-Z]*(\d+)\.(\d+)'
 $verMajor = $Matches.1
 $verMinor = $Matches.2
 
+$env:path -split ';'
 
 # Build release package
 if ($Release)
@@ -80,7 +81,6 @@ Foreach ($arch in $Architectures)
 
     if ($Release)
     {
-        # $buildFlags = "-ldflags -s -w -X main.version=$ver"
         $buildDir = PrepareBuildDir $outDir $arch
         $buildFlags = "-ldflags=""-w -s -H=windowsgui"" -trimpath"
         $binary = "winssh-pageant.exe"
@@ -91,6 +91,8 @@ Foreach ($arch in $Architectures)
     }
 
     Invoke-Expression ("go build ${buildFlags} -o $buildDir\$binary" )
+    #Invoke-Expression ("upx --brute $buildDir\$binary" )
+    
     if ($LastExitCode -ne 0) { $returnValue = $LastExitCode }
 
     if ($Release)
@@ -99,7 +101,7 @@ Foreach ($arch in $Architectures)
         
         Push-Location $buildDir
         $msiName = "winssh-pageant-${ver}_${arch}.msi"
-        go-msi make --path $buildDir\wix.json --src $buildDir\templates --out $buildDir\tmp --version $ver --arch $arch --msi "${releaseDir}\${msiName}" --keep
+        go-msi make --path $buildDir\wix.json --src $buildDir\templates --out $buildDir\tmp --version $ver --arch $arch --msi "${releaseDir}\${msiName}"
         Pop-Location
 
         $checksum = (Get-FileHash -Algorithm SHA256 -Path "${buildDir}\${binary}").Hash
