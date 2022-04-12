@@ -142,3 +142,4 @@ Please put report all
 Big thanks to <https://github.com/benpye/wsl-ssh-pageant>, Ben Pye and the other contributors for the examples of interacting with the win32 api, the build script, and help they have given me directly.
 
 - <https://github.com/buptczq/WinCryptSSHAgent> for a working example of how to open a file mapping another process created.
+- @meilon for reporting an internationalization bug and testing the fix for me.
