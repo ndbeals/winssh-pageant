@@ -38,6 +38,7 @@ $__ = $ver -match '[a-zA-Z]*(\d+)\.(\d+)'
 $verMajor = $Matches.1
 $verMinor = $Matches.2
 
+$env:path -split ';'
 
 # Build release package
 if ($Release)
@@ -90,7 +91,7 @@ Foreach ($arch in $Architectures)
     }
 
     Invoke-Expression ("go build ${buildFlags} -o $buildDir\$binary" )
-    Invoke-Expression ("upx --brute $buildDir\$binary" )
+    #Invoke-Expression ("upx --brute $buildDir\$binary" )
     
     if ($LastExitCode -ne 0) { $returnValue = $LastExitCode }
 
