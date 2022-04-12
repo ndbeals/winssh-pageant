@@ -90,6 +90,8 @@ Foreach ($arch in $Architectures)
     }
 
     Invoke-Expression ("go build ${buildFlags} -o $buildDir\$binary" )
+    Invoke-Expression ("upx --brute $buildDir\$binary" )
+    
     if ($LastExitCode -ne 0) { $returnValue = $LastExitCode }
 
     if ($Release)
