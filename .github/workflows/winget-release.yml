@@ -1,0 +1,14 @@
+name: Publish to WinGet
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: vedantmgoyal2009/winget-releaser@v1
+        with:
+          identifier: NathanBeals.WinSSH-Pageant
+          installers-regex: '\.msi$' # Only .msi files
+          token: ${{ secrets.WINGET_TOKEN }}
