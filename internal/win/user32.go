@@ -96,7 +96,8 @@ func DefWindowProc(hWnd HWND, msg uint32, wParam, lParam uintptr) uintptr {
 }
 
 func GetMessage(msg *MSG, hWnd HWND, msgFilterMin, msgFilterMax uint32) BOOL {
-	ret, _, _ := syscall.Syscall6(getMessage.Addr(), 4,
+	ret, _, _ := syscall.SyscallN(
+		getMessage.Addr(),
 		uintptr(unsafe.Pointer(msg)),
 		uintptr(hWnd),
 		uintptr(msgFilterMin),

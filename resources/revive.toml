@@ -1,5 +1,5 @@
 ignoreGeneratedHeader = false
-severity = "error"
+severity = "warning"
 confidence = 0.8
 errorCode = 1
 warningCode = 0
@@ -45,6 +45,7 @@ warningCode = 0
 [rule.modifies-value-receiver]
 [rule.nested-structs]
 [rule.package-comments]
+  disabled = true
 [rule.range]
 [rule.range-val-in-closure]
 [rule.range-val-address]
@@ -55,12 +56,12 @@ warningCode = 0
 [rule.string-format]
 [rule.superfluous-else]
 [rule.time-naming]
-[rule.var-naming]
 [rule.var-declaration]
 [rule.unconditional-recursion]
 [rule.unexported-naming]
 [rule.unexported-return]
 [rule.unhandled-error]
+  arguments =["fmt.Printf", "fmt.Println"]
 [rule.unnecessary-stmt]
 [rule.unreachable-code]
 [rule.unused-parameter]

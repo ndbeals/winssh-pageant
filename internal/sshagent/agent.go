@@ -1,7 +1,6 @@
 package sshagent
 
 import (
-	"bufio"
 	"encoding/binary"
 	"fmt"
 	"time"
@@ -26,68 +25,50 @@ func QueryAgent(pipeName string, buf []byte) (result []byte, err error) {
 
 	conn, err := winio.DialPipe(pipeName, nil)
 	if err != nil {
-		fmt.Printf("cannot connect to pipe %s: %s", pipeName, err.Error())
+		fmt.Printf("cannot connect to pipe %s: %s\n", pipeName, err.Error())
 		return genericFail, nil
 	}
 	defer conn.Close()
 	// If the agent needs the user to do something, give them time to do so, but don't wait forever.
-	conn.SetDeadline(time.Now().Add(time.Second * 20))
+	conn.SetDeadline(time.Now().Add(time.Second * 2))
 
 	_, err = conn.Write(buf)
 	if err != nil {
-		fmt.Printf("cannot write to pipe %s: %s", pipeName, err.Error())
+		fmt.Printf("cannot write ssh client request to agent pipe %s: %s\n", pipeName, err.Error())
 		return genericFail, nil
 	}
 
-	// The buffer needs to be at least as large as the expected message size
-	reader := bufio.NewReaderSize(conn, AgentMaxMessageLength)
-
-	// Magic numbers from the ssh-agent protocol specification.
 	// <https://github.com/openssh/openssh-portable/blob/4e636cf/PROTOCOL.agent>
-	// first 4 bytes are magic numbers related to the named pipe
-	magic := make([]byte, 4)
-	_, err = reader.Read(magic)
+	// first 4 bytes are messageSizeBuf uint32
+	messageSizeBuf := make([]byte, 4)
+	_, err = conn.Read(messageSizeBuf)
 	if err != nil {
-		fmt.Printf("cannot read from pipe %s: %s", pipeName, err.Error())
+		fmt.Printf("Cannot read message size from pipe %s: %s\n", pipeName, err.Error())
 		return genericFail, nil
 	}
-	// next byte is the reply code
+	messageSize := binary.BigEndian.Uint32(messageSizeBuf)
+
+	// next byte is the reply type code
 	replyCode := make([]byte, 1)
-	_, err = reader.Read(replyCode)
+	_, err = conn.Read(replyCode)
 	if err != nil {
-		fmt.Printf("cannot read from pipe %s: %s", pipeName, err.Error())
-		return append(magic, []byte{SSH_AGENT_FAIL}...), nil
+		fmt.Printf("Cannot read message type from pipe %s: %s\n", pipeName, err.Error())
+		return append(messageSizeBuf, SSH_AGENT_FAIL), nil
 	}
 	if replyCode[0] == SSH_AGENT_FAIL {
-		return append(magic, replyCode...), nil
+		return append(messageSizeBuf, replyCode...), nil
 	}
-	// next 4 bytes (Uint32) is the number of keys
-	keyCountSlice := make([]byte, 4)
-	_, err = reader.Read(keyCountSlice)
+
+	// https://datatracker.ietf.org/doc/html/draft-miller-ssh-agent-04#section-3
+	messageContents := make([]byte, messageSize-1)
+	_, err = conn.Read(messageContents)
 	if err != nil {
-		fmt.Printf("cannot read from pipe %s: %s", pipeName, err.Error())
-		return append(magic, []byte{SSH_AGENT_FAIL}...), nil
-	}
-	// convert to Uint32
-	keyCount := binary.BigEndian.Uint32(keyCountSlice)
-
-	// set to max agent message length minus the previous 9 bytes
-	res := make([]byte, AgentMaxMessageLength-9)
-	// verify the key count is > 0, otherwise skip
-	byteCount := 0
-	if keyCount > 0 {
-		byteCount, err = reader.Read(res)
-		if err != nil {
-			fmt.Printf("cannot read from pipe %s: %s", pipeName, err.Error())
-			return append(magic, []byte{SSH_AGENT_FAIL}...), nil
-		}
+		fmt.Printf("cannot read message contents from pipe %s: %s\n", pipeName, err.Error())
+		return append(messageSizeBuf, SSH_AGENT_FAIL), nil
 	}
 
-	// Concat all slices together
-	concatRes := append(magic, replyCode...)
-	concatRes = append(concatRes, keyCountSlice...)
-	concatRes = append(concatRes, res[0:byteCount]...)
+	concatResults := append(messageSizeBuf, replyCode...)
+	concatResults = append(concatResults, messageContents...)
 
-	res = nil // Explicitly clear the result to prevent memory leak
-	return concatRes, nil
+	return concatResults, nil
 }

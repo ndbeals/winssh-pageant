@@ -50,7 +50,7 @@ func main() {
 	msg := (*win.MSG)(unsafe.Pointer(hglobal))
 
 	// main message loop
-	for win.GetMessage(msg, 0, 0, 0) > 0 {
+	for win.GetMessage(msg, pageantWindow, 0, 0) > 0 {
 		win.TranslateMessage(msg)
 		win.DispatchMessage(msg)
 	}

@@ -96,16 +96,20 @@ func createPageantWindow() win.HWND {
 	}
 
 	// CreateWindowEx
-	pageantWindow := win.CreateWindowEx(win.WS_EX_APPWINDOW,
+	pageantWindow := win.CreateWindowEx(
+		win.WS_EX_APPWINDOW,
 		wndClassNamePtr,
 		wndClassNamePtr,
 		0,
-		0, 0,
-		0, 0,
+		0,
+		0,
+		0,
+		0,
 		0,
 		0,
 		inst,
-		nil)
+		nil,
+	)
 
 	return pageantWindow
 }
@@ -156,7 +160,7 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 
 			sharedMemoryArray := (*[sshagent.AgentMaxMessageLength]byte)(unsafe.Pointer(sharedMemory))
 
-			size := binary.BigEndian.Uint32(sharedMemoryArray[:4]) + 4
+			size := binary.BigEndian.Uint32(sharedMemoryArray[:4]) + 4 // +4 for the size uint itself
 			if size > sshagent.AgentMaxMessageLength {
 				return 0
 			}
