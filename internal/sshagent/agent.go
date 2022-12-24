@@ -2,6 +2,7 @@ package sshagent
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"time"
 
@@ -38,12 +39,18 @@ func QueryAgent(pipeName string, buf []byte) (result []byte, err error) {
 		return genericFail, nil
 	}
 
+	conn.SetDeadline(time.Now().Add(time.Second * 60)) // Update deadline
 	// <https://github.com/openssh/openssh-portable/blob/4e636cf/PROTOCOL.agent>
 	// first 4 bytes are messageSizeBuf uint32
 	messageSizeBuf := make([]byte, 4)
 	_, err = conn.Read(messageSizeBuf)
 	if err != nil {
-		fmt.Printf("Cannot read message size from pipe %s: %s\n", pipeName, err.Error())
+		switch {
+		case errors.Is(err, winio.ErrTimeout):
+			fmt.Printf("Timeout waiting for user input %s: %s\n", pipeName, err.Error())
+		default:
+			fmt.Printf("Cannot read message size from pipe %s: %s\n", pipeName, err.Error())
+		}
 		return genericFail, nil
 	}
 	messageSize := binary.BigEndian.Uint32(messageSizeBuf)
