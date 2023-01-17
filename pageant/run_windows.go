@@ -1,4 +1,7 @@
-package main
+//go:build windows
+// +build windows
+
+package pageant
 
 import (
 	"bufio"
@@ -8,6 +11,7 @@ import (
 	"log"
 	"net"
 	"os/user"
+	"runtime"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -22,6 +26,46 @@ import (
 	"github.com/ndbeals/winssh-pageant/internal/sshagent"
 	"github.com/ndbeals/winssh-pageant/internal/win"
 )
+
+func (p *Pageant) Run() {
+
+	err := win.FixConsoleIfNeeded()
+	if err != nil {
+		log.Fatalf("FixConsoleOutput: %v\n", err)
+	}
+
+	// Check if any application claiming to be a Pageant Window is already running
+	if doesPagentWindowExist() {
+		log.Println("This application is already running, exiting.")
+		return
+	}
+
+	// Start a proxy/redirector for the pageant named pipes
+	if !p.noPageantPipe {
+		go p.pipeProxy()
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	pageantWindow := p.createPageantWindow()
+	if pageantWindow == 0 {
+		log.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
+		return
+	}
+
+	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
+	msg := (*win.MSG)(unsafe.Pointer(hglobal))
+
+	// main message loop
+	for win.GetMessage(msg, pageantWindow, 0, 0) > 0 {
+		win.TranslateMessage(msg)
+		win.DispatchMessage(msg)
+	}
+
+	// Explicitly release the global memory handle
+	win.GlobalFree(hglobal)
+}
 
 const (
 	// windows consts
@@ -68,12 +112,12 @@ func doesPagentWindowExist() bool {
 	return win.FindWindow(wndClassNamePtr, nil) != 0
 }
 
-func registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
+func (p *Pageant) registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
 	var wc win.WNDCLASSEX
 	wc.Style = 0
 
 	wc.CbSize = uint32(unsafe.Sizeof(wc))
-	wc.LpfnWndProc = syscall.NewCallback(wndProc)
+	wc.LpfnWndProc = syscall.NewCallback(p.wndProc)
 	wc.CbClsExtra = 0
 	wc.CbWndExtra = 0
 	wc.HInstance = hInstance
@@ -87,9 +131,9 @@ func registerPageantWindow(hInstance win.HINSTANCE) (atom win.ATOM) {
 	return win.RegisterClassEx(&wc)
 }
 
-func createPageantWindow() win.HWND {
+func (p *Pageant) createPageantWindow() win.HWND {
 	inst := win.GetModuleHandle(nil)
-	atom := registerPageantWindow(inst)
+	atom := p.registerPageantWindow(inst)
 	if atom == 0 {
 		log.Println(fmt.Errorf("RegisterClass failed: %d", win.GetLastError()))
 		return 0
@@ -114,7 +158,7 @@ func createPageantWindow() win.HWND {
 	return pageantWindow
 }
 
-func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uintptr {
+func (p *Pageant) wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uintptr {
 	switch message {
 	case win.WM_COPYDATA:
 		{
@@ -166,7 +210,7 @@ func wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam uintptr) uint
 			}
 
 			// Query the windows OpenSSH agent via the windows named pipe
-			result, err := sshagent.QueryAgent(*sshPipe, sharedMemoryArray[:size])
+			result, err := sshagent.QueryAgent(p.sshPipe, sharedMemoryArray[:size])
 			if err != nil {
 				log.Println(err)
 				return 0
@@ -212,7 +256,7 @@ func capiObfuscateString(realname string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func pipeProxy() {
+func (p *Pageant) pipeProxy() {
 	currentUser, err := user.Current()
 	if err != nil {
 		log.Println(err)
@@ -232,12 +276,12 @@ func pipeProxy() {
 				log.Println(err)
 				return
 			}
-			go pipeListen(conn)
+			go p.pipeListen(conn)
 		}
 	}
 }
 
-func pipeListen(pageantConn net.Conn) {
+func (p *Pageant) pipeListen(pageantConn net.Conn) {
 	defer pageantConn.Close()
 	reader := bufio.NewReader(pageantConn)
 
@@ -255,7 +299,7 @@ func pipeListen(pageantConn net.Conn) {
 			return
 		}
 
-		result, err := sshagent.QueryAgent(*sshPipe, append(lenBuf, readBuf...))
+		result, err := sshagent.QueryAgent(p.sshPipe, append(lenBuf, readBuf...))
 		if err != nil {
 			return
 		}
