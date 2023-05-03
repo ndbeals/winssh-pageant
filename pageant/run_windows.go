@@ -35,13 +35,13 @@ func (p *Pageant) Run() {
 	}
 
 	// Check if any application claiming to be a Pageant Window is already running
-	if doesPagentWindowExist() {
+	if doesPageantWindowExist() {
 		log.Println("This application is already running, exiting.")
 		return
 	}
 
 	// Start a proxy/redirector for the pageant named pipes
-	if !p.noPageantPipe {
+	if p.pageantPipe {
 		go p.pipeProxy()
 	}
 
@@ -108,7 +108,7 @@ func openFileMap(dwDesiredAccess, bInheritHandle uint32, mapNamePtr uintptr) (wi
 	return windows.Handle(mapPtr), err
 }
 
-func doesPagentWindowExist() bool {
+func doesPageantWindowExist() bool {
 	return win.FindWindow(wndClassNamePtr, nil) != 0
 }
 

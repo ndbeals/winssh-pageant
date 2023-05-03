@@ -4,11 +4,9 @@
 package pageant
 
 import (
-	"fmt"
-	"os"
+	"log"
 )
 
 func (p *Pageant) Run() {
-	fmt.Println("winssh-pageant bridge only supported on Windows")
-	os.Exit(1)
+	log.Fatalf("winssh-pageant bridge only supported on Windows")
 }

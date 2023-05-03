@@ -14,5 +14,10 @@ var (
 func main() {
 	flag.Parse()
 
-	pageant.New(*sshPipe, *noPageantPipe).Run()
+	p := pageant.New(
+		pageant.WithSSHPipe(*sshPipe),
+		pageant.WithPageantPipe(!*noPageantPipe),
+	)
+
+	p.Run()
 }
