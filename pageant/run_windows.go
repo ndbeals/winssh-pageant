@@ -27,6 +27,10 @@ import (
 	"github.com/ndbeals/winssh-pageant/internal/win"
 )
 
+var defaultHandlerFunc = func(p *Pageant, result []byte) ([]byte, error) {
+	return sshagent.QueryAgent(p.sshPipe, result)
+}
+
 func (p *Pageant) Run() {
 
 	err := win.FixConsoleIfNeeded()
@@ -210,7 +214,7 @@ func (p *Pageant) wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam 
 			}
 
 			// Query the windows OpenSSH agent via the windows named pipe
-			result, err := sshagent.QueryAgent(p.sshPipe, sharedMemoryArray[:size])
+			result, err := p.HandlerFunc(p, sharedMemoryArray[:size])
 			if err != nil {
 				log.Println(err)
 				return 0
