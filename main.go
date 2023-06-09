@@ -2,59 +2,19 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
-	"os"
-	"runtime"
-	"unsafe"
 
-	"github.com/ndbeals/winssh-pageant/internal/win"
+	"github.com/ndbeals/winssh-pageant/pageant"
 )
 
 var (
 	sshPipe       = flag.String("sshpipe", `\\.\pipe\openssh-ssh-agent`, "Named pipe for Windows OpenSSH agent")
-	noPageantPipe = flag.Bool("no-pageant-pipe", false, "Toggle pageant named pipe proxying")
+	noPageantPipe = flag.Bool("no-pageant-pipe", false, "Toggle pageant named pipe proxying (this is different from the windows OpenSSH pipe)")
 )
-
-var oldStdin, oldStdout, oldStderr *os.File
 
 func main() {
 	flag.Parse()
 
-	err := win.FixConsoleIfNeeded()
-	if err != nil {
-		log.Fatalf("FixConsoleOutput: %v\n", err)
-	}
+	p := pageant.NewDefaultHandler(*sshPipe, !*noPageantPipe)
 
-	// Check if any application claiming to be a Pageant Window is already running
-	if doesPagentWindowExist() {
-		log.Println("This application is already running, exiting.")
-		return
-	}
-
-	// Start a proxy/redirector for the pageant named pipes
-	if !*noPageantPipe {
-		go pipeProxy()
-	}
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	pageantWindow := createPageantWindow()
-	if pageantWindow == 0 {
-		log.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
-		return
-	}
-
-	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
-	msg := (*win.MSG)(unsafe.Pointer(hglobal))
-
-	// main message loop
-	for win.GetMessage(msg, pageantWindow, 0, 0) > 0 {
-		win.TranslateMessage(msg)
-		win.DispatchMessage(msg)
-	}
-
-	// Explicitly release the global memory handle
-	win.GlobalFree(hglobal)
+	p.Run()
 }

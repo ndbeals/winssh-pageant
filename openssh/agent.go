@@ -1,4 +1,4 @@
-package sshagent
+package openssh
 
 import (
 	"encoding/binary"
