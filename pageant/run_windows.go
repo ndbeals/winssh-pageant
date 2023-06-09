@@ -32,15 +32,9 @@ var defaultHandlerFunc = func(p *Pageant, result []byte) ([]byte, error) {
 }
 
 func (p *Pageant) Run() {
-
-	err := win.FixConsoleIfNeeded()
-	if err != nil {
-		log.Printf("FixConsoleOutput: %v\n", err)
-	}
-
 	// Check if any application claiming to be a Pageant Window is already running
 	if doesPageantWindowExist() {
-		log.Println("This application is already running, exiting.")
+		log.Println("A Pageant window already exists, exiting.")
 		return
 	}
 

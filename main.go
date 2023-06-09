@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"log"
 
+	"github.com/ndbeals/winssh-pageant/internal/win"
 	"github.com/ndbeals/winssh-pageant/pageant"
 )
 
@@ -13,6 +15,11 @@ var (
 
 func main() {
 	flag.Parse()
+
+	err := win.FixConsoleIfNeeded()
+	if err != nil {
+		log.Printf("FixConsoleOutput: %v\n", err)
+	}
 
 	p := pageant.NewDefaultHandler(*sshPipe, !*noPageantPipe)
 
