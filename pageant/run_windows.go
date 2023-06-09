@@ -23,19 +23,19 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/ndbeals/winssh-pageant/internal/security"
-	"github.com/ndbeals/winssh-pageant/internal/sshagent"
 	"github.com/ndbeals/winssh-pageant/internal/win"
+	"github.com/ndbeals/winssh-pageant/openssh"
 )
 
 var defaultHandlerFunc = func(p *Pageant, result []byte) ([]byte, error) {
-	return sshagent.QueryAgent(p.sshPipe, result)
+	return openssh.QueryAgent(p.SSHAgentPipe, result)
 }
 
 func (p *Pageant) Run() {
 
 	err := win.FixConsoleIfNeeded()
 	if err != nil {
-		log.Fatalf("FixConsoleOutput: %v\n", err)
+		log.Printf("FixConsoleOutput: %v\n", err)
 	}
 
 	// Check if any application claiming to be a Pageant Window is already running
@@ -59,6 +59,7 @@ func (p *Pageant) Run() {
 	}
 
 	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
+	//nolint:gosec
 	msg := (*win.MSG)(unsafe.Pointer(hglobal))
 
 	// main message loop
@@ -206,17 +207,17 @@ func (p *Pageant) wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam 
 			}
 			defer windows.UnmapViewOfFile(sharedMemory)
 
-			sharedMemoryArray := (*[sshagent.AgentMaxMessageLength]byte)(unsafe.Pointer(sharedMemory))
+			sharedMemoryArray := (*[openssh.AgentMaxMessageLength]byte)(unsafe.Pointer(sharedMemory))
 
 			size := binary.BigEndian.Uint32(sharedMemoryArray[:4]) + 4 // +4 for the size uint itself
-			if size > sshagent.AgentMaxMessageLength {
+			if size > openssh.AgentMaxMessageLength {
 				return 0
 			}
 
 			// Query the windows OpenSSH agent via the windows named pipe
-			result, err := p.HandlerFunc(p, sharedMemoryArray[:size])
+			result, err := p.PageantRequestHandler(p, sharedMemoryArray[:size])
 			if err != nil {
-				log.Println(err)
+				log.Printf("Error in PageantRequestHandler: %+v\n", err)
 				return 0
 			}
 			copy(sharedMemoryArray[:], result)
@@ -303,8 +304,9 @@ func (p *Pageant) pipeListen(pageantConn net.Conn) {
 			return
 		}
 
-		result, err := sshagent.QueryAgent(p.sshPipe, append(lenBuf, readBuf...))
+		result, err := p.PageantRequestHandler(p, append(lenBuf, readBuf...))
 		if err != nil {
+			log.Printf("Pipe: Error in PageantRequestHandler: %+v\n", err)
 			return
 		}
 
