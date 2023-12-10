@@ -1,6 +1,6 @@
 package pageant
 
-import "log"
+import "github.com/rs/zerolog/log"
 
 type PageantRequestHandler func(p *Pageant, result []byte) ([]byte, error)
 
@@ -36,7 +36,7 @@ func NewWithOptions(opts ...Option) *Pageant {
 	for _, applyTo := range opts {
 		err := applyTo(p)
 		if err != nil {
-			log.Printf("Error applying option: %v\n", err)
+			log.Debug().Stack().Err(err).Msg("Error applying option")
 		}
 	}
 	return p

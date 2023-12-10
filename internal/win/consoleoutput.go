@@ -2,7 +2,6 @@ package win
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"syscall"
 
@@ -63,6 +62,5 @@ func FixConsoleIfNeeded() error {
 		os.Stdout = os.NewFile(uintptr(stdout), "stdout")
 	}
 
-	log.SetOutput(os.Stdout)
 	return nil
 }

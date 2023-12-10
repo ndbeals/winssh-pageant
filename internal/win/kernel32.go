@@ -18,13 +18,21 @@ var (
 	attachConsole   = libkernel32.NewProc("AttachConsole")
 )
 
-func GetLastError() uint32 {
-	ret, _, _ := syscall.Syscall(getLastError.Addr(), 0,
-		0,
-		0,
-		0)
+// func GetLastError() uint32 {
+// 	ret, _, _ := syscall.Syscall(getLastError.Addr(), 0,
+// 		0,
+// 		0,
+// 		0)
 
-	return uint32(ret)
+// 	return uint32(ret)
+// }
+
+func GetLastError() (lasterr error) {
+	r0, _, _ := syscall.SyscallN(getLastError.Addr())
+	if r0 != 0 {
+		lasterr = syscall.Errno(r0)
+	}
+	return lasterr
 }
 
 func GetModuleHandle(lpModuleName *uint16) HINSTANCE {

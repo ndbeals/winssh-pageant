@@ -101,9 +101,7 @@ func GetMessage(msg *MSG, hWnd HWND, msgFilterMin, msgFilterMax uint32) BOOL {
 		uintptr(unsafe.Pointer(msg)),
 		uintptr(hWnd),
 		uintptr(msgFilterMin),
-		uintptr(msgFilterMax),
-		0,
-		0)
+		uintptr(msgFilterMax))
 
 	return BOOL(ret)
 }

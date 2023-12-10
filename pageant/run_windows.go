@@ -8,13 +8,14 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os/user"
 	"runtime"
 	"strings"
 	"syscall"
 	"unsafe"
+
+	"github.com/rs/zerolog/log"
 
 	"encoding/binary"
 	"encoding/hex"
@@ -32,35 +33,33 @@ var defaultHandlerFunc = func(p *Pageant, result []byte) ([]byte, error) {
 }
 
 func (p *Pageant) Run() {
-
-	err := win.FixConsoleIfNeeded()
-	if err != nil {
-		log.Printf("FixConsoleOutput: %v\n", err)
-	}
-
 	// Check if any application claiming to be a Pageant Window is already running
 	if doesPageantWindowExist() {
-		log.Println("This application is already running, exiting.")
+		log.Warn().Msg("This application is already running, exiting.")
 		return
 	}
 
 	// Start a proxy/redirector for the pageant named pipes
 	if p.pageantPipe {
 		go p.pipeProxy()
+		log.Info().Msg("Pageant pipe proxy started")
 	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+	log.Debug().Msg("Locked OS Thread")
 
 	pageantWindow := p.createPageantWindow()
 	if pageantWindow == 0 {
-		log.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
+		// log.Println(fmt.Errorf("CreateWindowEx failed: %v", win.GetLastError()))
+		log.Error().Stack().Err(win.GetLastError()).Msg("CreateWindowEx failed")
 		return
 	}
 
 	hglobal := win.GlobalAlloc(0, unsafe.Sizeof(win.MSG{}))
 	//nolint:gosec
 	msg := (*win.MSG)(unsafe.Pointer(hglobal))
+	log.Debug().Msg("Allocated global memory for message data, Starting message loop")
 
 	// main message loop
 	for win.GetMessage(msg, pageantWindow, 0, 0) > 0 {
@@ -68,6 +67,7 @@ func (p *Pageant) Run() {
 		win.DispatchMessage(msg)
 	}
 
+	log.Debug().Msg("Message loop exited, freeing global memory")
 	// Explicitly release the global memory handle
 	win.GlobalFree(hglobal)
 }
@@ -110,6 +110,9 @@ func openFileMap(dwDesiredAccess, bInheritHandle uint32, mapNamePtr uintptr) (wi
 	if err.(syscall.Errno) == windows.ERROR_SUCCESS {
 		err = nil
 	}
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("OpenFileMapping syscall failed")
+	}
 	return windows.Handle(mapPtr), err
 }
 
@@ -140,7 +143,8 @@ func (p *Pageant) createPageantWindow() win.HWND {
 	inst := win.GetModuleHandle(nil)
 	atom := p.registerPageantWindow(inst)
 	if atom == 0 {
-		log.Println(fmt.Errorf("RegisterClass failed: %d", win.GetLastError()))
+		// log.Println(fmt.Errorf("RegisterClass failed: %d", win.GetLastError()))
+		log.Error().Stack().Err(win.GetLastError()).Msg("RegisterClass failed")
 		return 0
 	}
 
@@ -171,41 +175,58 @@ func (p *Pageant) wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam 
 			if copyData.dwData != agentCopyDataID {
 				return 0
 			}
+			log.Debug().Msg("Received WM_COPYDATA message")
 
 			fileMap, err := openFileMap(FILE_MAP_ALL_ACCESS, 0, copyData.lpData)
 			if err != nil {
-				log.Println(err)
+				// log.Println(err)
+				log.Error().Stack().Err(err).Msg("OpenFileMap failed")
 				return 0
 			}
-			defer windows.CloseHandle(fileMap)
+			defer func() {
+				err := windows.CloseHandle(fileMap)
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("CloseHandle failed")
+				}
+			}()
 
 			// check security
 			ourself, err := security.GetUserSID()
 			if err != nil {
-				log.Println(err)
+				// log.Println(err)
+				log.Error().Stack().Err(err).Msg("GetUserSID failed")
 				return 0
 			}
 			ourself2, err := security.GetDefaultSID()
 			if err != nil {
-				log.Println(err)
+				// log.Println(err)
+				log.Error().Stack().Err(err).Msg("GetDefaultSID failed")
 				return 0
 			}
 			mapOwner, err := security.GetHandleSID(fileMap)
 			if err != nil {
-				log.Println(err)
+				// log.Println(err)
+				log.Error().Stack().Err(err).Msg("GetHandleSID failed")
 				return 0
 			}
 			if !windows.EqualSid(mapOwner, ourself) && !windows.EqualSid(mapOwner, ourself2) {
 				return 0
 			}
+			log.Debug().Msg("Passed security checks")
 
 			// Passed security checks, copy data
 			sharedMemory, err := windows.MapViewOfFile(fileMap, FILE_MAP_WRITE, 0, 0, 0)
 			if err != nil {
-				log.Println(err)
+				// log.Println(err)
+				log.Error().Stack().Err(err).Msg("MapViewOfFile failed")
 				return 0
 			}
-			defer windows.UnmapViewOfFile(sharedMemory)
+			defer func() {
+				err := windows.UnmapViewOfFile(sharedMemory)
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("UnmapViewOfFile failed")
+				}
+			}()
 
 			sharedMemoryArray := (*[openssh.AgentMaxMessageLength]byte)(unsafe.Pointer(sharedMemory))
 
@@ -213,6 +234,7 @@ func (p *Pageant) wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam 
 			if size > openssh.AgentMaxMessageLength {
 				return 0
 			}
+			log.Debug().Msgf("Received pageant request message of size: %d", size)
 
 			// Query the windows OpenSSH agent via the windows named pipe
 			result, err := p.PageantRequestHandler(p, sharedMemoryArray[:size])
@@ -220,7 +242,9 @@ func (p *Pageant) wndProc(hWnd win.HWND, message uint32, wParam uintptr, lParam 
 				log.Printf("Error in PageantRequestHandler: %+v\n", err)
 				return 0
 			}
-			copy(sharedMemoryArray[:], result)
+			log.Debug().Msgf("Sent request to openssh handler, result size: %d", len(result))
+			elems := copy(sharedMemoryArray[:], result)
+			log.Debug().Msgf("Copied %d elements to shared memory", elems)
 
 			// success, explicitly Clean up some resources (better to be certain it get's GC'd)
 			ourself = nil
@@ -264,21 +288,24 @@ func capiObfuscateString(realname string) string {
 func (p *Pageant) pipeProxy() {
 	currentUser, err := user.Current()
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
+		log.Error().Stack().Err(err).Msg("user.Current failed")
 	}
 
 	namePart := strings.Split(currentUser.Username, `\`)[1]
 	pipeName := fmt.Sprintf(agentPipeName, namePart, capiObfuscateString(wndClassName))
 	listener, err := winio.ListenPipe(pipeName, nil)
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
+		log.Error().Stack().Err(err).Msg("ListenPipe failed")
 	} else {
 		defer listener.Close()
 
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
-				log.Println(err)
+				// log.Println(err)
+				log.Error().Stack().Err(err).Msg("Pipe proxy accept failed")
 				return
 			}
 			go p.pipeListen(conn)
