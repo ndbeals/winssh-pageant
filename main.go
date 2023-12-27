@@ -25,13 +25,12 @@ func main() {
 	_ = verbose
 	flag.Parse()
 
-	if isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd()) {
-		// configureLogger(*verbose)
+	if *verbose || (isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())) {
 		err := win.FixConsoleIfNeeded()
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("FixConsole failed")
 		}
-		configureLogger(true)
+		configureLogger(*verbose)
 	} else {
 		log.Logger = zerolog.Nop()
 	}
@@ -44,7 +43,6 @@ func main() {
 }
 
 func configureLogger(verbose bool) {
-	// zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 
 	output := zerolog.NewConsoleWriter()
