@@ -1,0 +1,211 @@
+{
+  "product": "hello",
+  "company": "mh-cbon",
+  "license": "LICENSE",
+  "icon": "ico.ico",
+  "info": {
+    "comments": "some comments",
+    "contact": "some contact",
+    "help-link": "http://example.com/help",
+    "support-telephone": "555-123456789",
+    "support-link": "http://example.com/support",
+    "update-info-link": "http://example.com/update",
+    "readme": "[INSTALLDIR]readme.txt"
+  },
+  "upgrade-code": "",
+  "files": [
+    {
+      "path": "build/amd64/hello.exe",
+      "service": {
+        "name": "HelloSvc",
+        "start": "delayed",
+        "display-name": "Hello!",
+        "description": "The hello service",
+        "arguments": "[ProductVersion]",
+        "dependencies": [
+          "SENS",
+          "ProfSvc"
+        ]
+      }
+    }
+  ],
+  "directories": [
+    {
+      "name": "assets",
+      "files": [
+        {
+          "path": "some/assets/file1"
+        }
+      ],
+      "directories": [
+        {
+          "name": "dir1",
+          "files": [
+            {
+              "path": "some/assets/dir1/file2"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "name": "some",
+      "value": "value",
+      "permanent": "no",
+      "system": "no",
+      "action": "set",
+      "part": "last"
+    },
+    {
+      "name": "path",
+      "value": "[INSTALLDIR]",
+      "permanent": "no",
+      "system": "yes",
+      "action": "set",
+      "part": "last"
+    },
+    {
+      "name": "condition",
+      "value": "ok",
+      "permanent": "no",
+      "system": "no",
+      "action": "set",
+      "part": "last",
+      "condition": "ENVVAR ~= \"yes\""
+    }
+  ],
+  "registries": [
+    {
+      "path": "HKCU\\Software\\mh-cbon\\hello",
+      "values": [
+        {
+          "name": "Version",
+          "value": "[SOME_VERSION]"
+        },
+        {
+          "name": "InstallDir",
+          "value": "[INSTALLDIR]"
+        }
+      ]
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "hello",
+      "description": "hello web server",
+      "location": "program",
+      "target": "[INSTALLDIR]hello.exe",
+      "wdir": "INSTALLDIR",
+      "icon": "ico.ico",
+      "condition": "STARTMENUSHORTCUT ~= \"yes\"",
+      "properties": [
+        {
+          "key": "some property",
+          "value": "some value"
+        }
+      ]
+    },
+    {
+      "name": "hello",
+      "description": "hello web server",
+      "location": "desktop",
+      "target": "[INSTALLDIR]hello.exe",
+      "wdir": "INSTALLDIR",
+      "icon": "ico.ico",
+      "condition": "DESKTOPSHORTCUT ~= \"yes\""
+    }
+  ],
+  "choco": {
+    "description": "hello program",
+    "project-url": "https://github.com/mh-cbon/go-msi/tree/master/testing",
+    "tags": "hello",
+    "license-url": "https://github.com/mh-cbon/go-msi/blob/master/LICENSE"
+  },
+  "hooks": [
+    {
+      "command": "cmd /c @echo hook\u003e\"%USERPROFILE%\\hook.txt\""
+    },
+    {
+      "command": "cmd /c @echo install hook\u003e\"[INSTALLDIR]install-hook.txt\"",
+      "when": "install"
+    },
+    {
+      "command": "cmd /c del \"[INSTALLDIR]install-hook.txt\"",
+      "when": "uninstall"
+    },
+    {
+      "command": "cmd /c if exist \"[INSTALLDIR]uninstall-immediate-hook.txt\" (del \"[INSTALLDIR]uninstall-immediate-hook.txt\") else exit /b 1",
+      "when": "uninstall"
+    },
+    {
+      "command": "cmd /c @echo uninstall immediate hook\u003e\"[INSTALLDIR]uninstall-immediate-hook.txt\"",
+      "when": "uninstall",
+      "execute": "immediate"
+    },
+    {
+      "command": "cmd /c @echo install hook with passing condition\u003e\"[INSTALLDIR]install-hook-with-passing-condition.txt\"",
+      "when": "install",
+      "condition": "1 \u003e 0"
+    },
+    {
+      "command": "cmd /c del \"[INSTALLDIR]install-hook-with-passing-condition.txt\"",
+      "when": "uninstall",
+      "condition": "1 \u003e 0"
+    },
+    {
+      "command": "install hook with failing condition should not be run",
+      "when": "install",
+      "condition": "0 \u003e 1"
+    },
+    {
+      "command": "uninstall hook with failing condition should not be run",
+      "when": "uninstall",
+      "condition": "0 \u003e 1"
+    },
+    {
+      "command": "ignored failing hook",
+      "when": "install",
+      "return": "ignore"
+    }
+  ],
+  "properties": [
+    {
+      "id": "CURRENTBUILD",
+      "registry": {
+        "path": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+        "name": "CurrentBuild"
+      }
+    },
+    {
+      "id": "MINIMUMBUILD",
+      "value": "99999"
+    },
+    {
+      "id": "STARTMENUSHORTCUT",
+      "value": "yes"
+    },
+    {
+      "id": "DESKTOPSHORTCUT",
+      "value": "yes"
+    },
+    {
+      "id": "ENVVAR",
+      "value": "yes"
+    },
+    {
+      "id": "EMPTY"
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "Installed OR (CURRENTBUILD \u003c MINIMUMBUILD)",
+      "message": "some condition message"
+    },
+    {
+      "condition": "NOT EMPTY",
+      "message": "not empty"
+    }
+  ]
+}
