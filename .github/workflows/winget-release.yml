@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
 jobs:
   publish:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - uses: vedantmgoyal2009/winget-releaser@v1
+      - uses: vedantmgoyal9/winget-releaser@main
         with:
           identifier: NathanBeals.WinSSH-Pageant
           installers-regex: '\.msi$' # Only .msi files
