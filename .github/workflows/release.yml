@@ -69,12 +69,12 @@ jobs:
     steps:
 
     - name: Download Binaries
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4.1.7
       with:
         name: release
     
     - name: Download Checksums
-      uses: actions/download-artifact@v2.0.8
+      uses: actions/download-artifact@v4.1.7
       with:
         name: checksums
       
