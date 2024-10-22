@@ -66,12 +66,18 @@ func QueryAgent(pipeName string, buf []byte) (result []byte, err error) {
 		return append(messageSizeBuf, replyCode...), nil
 	}
 
+	// replyCode has been read
+	remainingMessageSize := messageSize-1
+
 	// https://datatracker.ietf.org/doc/html/draft-miller-ssh-agent-04#section-3
-	messageContents := make([]byte, messageSize-1)
-	_, err = conn.Read(messageContents)
-	if err != nil {
-		fmt.Printf("cannot read message contents from pipe %s: %s\n", pipeName, err.Error())
-		return append(messageSizeBuf, SSH_AGENT_FAIL), nil
+	messageContents := make([]byte, remainingMessageSize)
+
+	if(remainingMessageSize > 0) {
+		_, err = conn.Read(messageContents)
+		if err != nil {
+			fmt.Printf("cannot read message contents from pipe %s: %s\n", pipeName, err.Error())
+			return append(messageSizeBuf, SSH_AGENT_FAIL), nil
+		}
 	}
 
 	concatResults := append(messageSizeBuf, replyCode...)
